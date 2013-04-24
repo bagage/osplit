@@ -1,0 +1,53 @@
+#splitochrome {
+}
+
+#splitochrome table {
+	background: white;
+	border: none;
+	border-collapse: collapse;
+	font: normal 12px verdana, arial, helvetica, sans-serif;
+	margin-top: 2em;
+	overflow-x: scroll; 
+}
+
+#splitochrome caption {
+	font-weight: bold;
+	text-align: center;
+	font-size: 16px;
+}
+
+#splitochrome th {
+    font-weight: bold;
+}
+
+#splitochrome .left {
+    text-align: left;
+}
+
+#splitochrome .right {
+    text-align: right;
+}
+
+#splitochrome td {
+    padding-left: 1em;
+    text-align: right;
+}
+
+#splitochrome td.total {
+    font-weight: bold;
+}
+
+#splitochrome tr:nth-child(4n+1) {
+    background-color: #FFE9CD;
+}
+#splitochrome tr:nth-child(4n+2) {
+    background-color: #FFE9CD;
+    color: #FFA635
+}
+#splitochrome tr:nth-child(4n+3) {
+    background-color: white;
+}
+#splitochrome tr:nth-child(4n) {
+    color: #FFA635;
+	background-color: white;
+}

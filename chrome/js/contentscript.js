@@ -1,5 +1,4 @@
 'use strict';
-var regex = /OE20\d\d © Stephan Krämer 20\d\d/;
 String.prototype.trim = String.prototype.trim || function() {
     return this.replace(/^\s+|\s+$/g, '');
 };
@@ -16,20 +15,66 @@ function onIconClicked() {
     else {
         PARENT.removeChild(BACKUP);
         OURDIV = document.createElement('div');
+        OURDIV.id = 'splitochrome';
         for (var i = 0; i < CIRCUITS.length; i++) {
             var c = CIRCUITS[i];
             var table = document.createElement('table');
           
             table.createCaption().innerText = c.description;
+            var thead = table.createTHead();
+            var th = document.createElement('th');
+            th.innerText = "Name";
+            th.classList.add('left');
+            thead.appendChild(th);
+            var th = document.createElement('th');
+            th.innerText = "Cat.";
+            th.classList.add('left');
+            thead.appendChild(th);
+            
+            for (var j=0; j<c.controls.length; j++) {
+                th = document.createElement('th');
+                th.innerText = c.controls[j].n;
+                th.classList.add('right');
+                thead.appendChild(th);
+            }
             var tbody = table.createTBody();
             for ( var r = 0; r < c.runners.length; r++){
                 var runner = c.runners[r];
-                var tr = document.createElement('tr');
+                var tr, td = undefined;
+                // leg
+                tr = document.createElement('tr');
                 tbody.appendChild(tr);
-                for ( var t = 0; t < runner.cumTimes.length; t++){
-                    var td = document.createElement('td');
-                    td.innerText = runner.cumTimes[t];
+                th = document.createElement('th');
+                th.innerText = runner.name;
+                th.classList.add('left');
+                tr.appendChild(th);
+
+                th = document.createElement('th');
+                th.innerText = runner.category;
+                th.classList.add('left');
+                tr.appendChild(th);
+                
+                for ( var t = 0; t < c.controls.length; t++){
+                    td = document.createElement('td');
+                    td.innerText = runner.legTimes[t];
+                    td.classList.add('right');
                     tr.appendChild(td);
+                }
+                // cumulated
+                tr = document.createElement('tr');
+                tbody.appendChild(tr);
+                th = document.createElement('th');
+                tr.appendChild(th);
+                th = document.createElement('th');
+                tr.appendChild(th);
+                for (var t = 0; t < c.controls.length; t++){
+                    td = document.createElement('td');
+                    td.innerText = runner.cumTimes[t];
+                    td.classList.add('right');
+                    tr.appendChild(td);
+                }
+                if (td) {
+                    td.classList.add('total');
                 }
             }
             OURDIV.appendChild(table);
@@ -43,12 +88,6 @@ function Circuit() {
 }
 var RE_CIRCUIT = /[A-Z]\s+\(\d+\)\s+[\d\.]+\skm\s+\d+\s+P\s*/;
 var headline = {};
-if (regex.test(document.body.innerText)) {
-    CIRCUITS = parseDocument();
-    chrome.extension.sendMessage({}, function(response) {
-        chrome.runtime.onMessage.addListener(onIconClicked);
-    });
-}
 function parseDocument() {
     BACKUP = document.getElementsByTagName('pre')[0];
     PARENT = BACKUP.parentElement;
@@ -149,3 +188,6 @@ function getOneRunner(controlLinesCount, lines) {
     runner.legTimes = legs.trim().split(/\s+/);
     return runner;
 }
+
+CIRCUITS = parseDocument();
+chrome.runtime.onMessage.addListener(onIconClicked);
