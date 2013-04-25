@@ -39,14 +39,15 @@ else {
 			}
 		},
 		toggleRestricted: function(event) {
-			var table = this.parentElement.parentElement;
+		    var button = this;
+			var table = button.parentElement.parentElement;
 			if (table.classList.contains('restricted')) {
 				table.classList.remove('restricted');
-				this.innerText = "View only selected";
+				button.innerText = "View only selected";
 			}
 			else{
 				table.classList.add('restricted');
-				this.innerText = "Remove filter";
+				button.innerText = "Remove filter";
 			}
 		},
 		generateTables : function() {
@@ -120,7 +121,7 @@ else {
 						// leg
 						for ( var t = 0; t < c.controls.length; t++) {
 							td = document.createElement('td');
-							td.innerText = runner.legTimes[t];
+							td.innerText = runner.legTimes[t] || '-----';
 							td.classList.add('right');
 							td.title = runner.name + " @ " + c.controls[t].n;
 							tr.appendChild(td);
@@ -143,7 +144,7 @@ else {
 						}
 						for ( var t = 0; t < c.controls.length; t++) {
 							td = document.createElement('td');
-							td.innerText = runner.cumTimes[t];
+							td.innerText = runner.cumTimes[t] || '-----';
 							td.classList.add('right');
 							td.title = runner.name + " @ " + c.controls[t].n;
 							tr.appendChild(td);
@@ -203,9 +204,9 @@ else {
 			var line;
 			do {
 				line = lines.shift();
-			} while (line !== undefined && !line.match(splitochrome.RE_CIRCUIT));
-			if (line !== undefined) {
-				lines.unshift(line);
+			} while (lines.length > 0 && !line.match(splitochrome.RE_CIRCUIT));
+			if (lines.length > 0) {
+			    lines.unshift(line);
 			}
 		},
 
@@ -223,7 +224,7 @@ else {
 					controls += line;
 					circuit.controlLinesCount++;
 				}
-			} while (line);
+			} while (lines.length > 0 && line);
 			var tmpResultsArr;
 			var reControls = /(\d+)\((\d+)\)/g;
 			while ((tmpResultsArr = reControls.exec(controls)) !== null) {
@@ -241,13 +242,12 @@ else {
 			// skip empty line(s)
 			do {
 				line = lines.shift();
-			} while (!line);
+			} while (lines.length > 0 && !line);
 			lines.unshift(line);
 			// Read runners
 			var runner;
 			do {
-				runner = splitochrome.getOneRunner(circuit.controlLinesCount,
-						lines);
+				runner = splitochrome.getOneRunner(circuit.controlLinesCount, lines);
 				if (runner) {
 					circuit.runners.push(runner);
 				}
@@ -265,14 +265,17 @@ else {
 			runner.name = splitochrome.HEADLINE.name && splitochrome.HEADLINE.name.extract(line1) || '';
 			runner.category = splitochrome.HEADLINE.category && splitochrome.HEADLINE.category.extract(line1) || '';
 			runner.club = splitochrome.HEADLINE.name && splitochrome.HEADLINE.name.extract(line2) || '';
-			
+			if (!runner.rank) {
+			    return undefined;
+			}
+			    
 			lines.unshift(line2);
 			lines.unshift(line1);
 
 			var totals = "";
 			var legs = "";
 			var line;
-			for ( var i = 0; i < 2 * controlLinesCount; i += 2) {
+			for (var i = 0; i < controlLinesCount; i++) {
 				line = lines.shift();
 				line = splitochrome.HEADLINE.data.extract(line);
 				totals += ' ' + line;
@@ -280,6 +283,13 @@ else {
                 line = splitochrome.HEADLINE.data.extract(line);
 				legs += ' ' + line;
 			}
+			do {
+			    line = lines.shift();
+			} while(lines.length > 0 && line && !line.match(splitochrome.RE_CIRCUIT) && !splitochrome.HEADLINE.rank.extract(line))
+			if (line) {
+			    lines.unshift(line);
+			}
+
 			runner.cumTimes = totals.trim().split(/\s+/);
 			runner.legTimes = legs.trim().split(/\s+/);
 			return runner;
