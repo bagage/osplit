@@ -1,17 +1,34 @@
 'use strict';
+String.prototype.trim = String.prototype.trim || function() {
+    return this.replace(/^\s+|\s+$/g, '');
+};
+function Extractor(from,to){
+    this.from = from;
+    this.to = to;
+};
+Extractor.prototype.extract = function(s) {
+    var tmp = s.slice(this.from, this.to);
+    return tmp.trim();
+};
 if (window.global_splitochrome) {
 	console.log("O'Splits: already loaded");
 }
 else {
 	console.log("O'Splits: loading...");
-	String.prototype.trim = String.prototype.trim || function() {
-		return this.replace(/^\s+|\s+$/g, '');
-	};
 	var splitochrome = {
 		CIRCUITS : undefined,
 		PARENT : undefined,
 		OURDIV : undefined,
 		BACKUP : undefined,
+		LANGS: {
+		    fr: {
+		        rank:'Pl',
+		        name:'Nom',
+		        category:'Cat.',
+		        time: 'Temps'
+		    }
+		},
+		LANG:undefined,
 		RE_CIRCUIT : /^\S+/,
 		HEADLINE : {},
 		onRunnerClicked : function(event) {
@@ -64,12 +81,13 @@ else {
 					th.innerText = "Name";
 					th.classList.add('left');
 					thead.appendChild(th);
-
-					th = document.createElement('th');
-					th.innerText = "Cat.";
-					th.classList.add('left');
-					thead.appendChild(th);
-
+					
+					if (splitochrome.HEADLINE.category) { 
+    					th = document.createElement('th');
+    					th.innerText = "Cat.";
+    					th.classList.add('left');
+    					thead.appendChild(th);
+					}
 					for ( var j = 0; j < c.controls.length; j++) {
 						th = document.createElement('th');
 						th.innerHTML = c.controls[j].n + '&nbsp;<span class="ctrlid">' + c.controls[j].id + '</span>';
@@ -79,8 +97,7 @@ else {
 					for ( var r = 0; r < c.runners.length; r++) {
 						var runner = c.runners[r];
 						tbody = table.createTBody();
-						tbody.addEventListener('click',
-								splitochrome.onRunnerClicked);
+						tbody.addEventListener('click', splitochrome.onRunnerClicked);
 						tr = document.createElement('tr');
 						tbody.appendChild(tr);
 
@@ -94,11 +111,12 @@ else {
 						th.classList.add('left');
 						tr.appendChild(th);
 
-						th = document.createElement('th');
-						th.innerText = runner.category;
-						th.classList.add('left');
-						tr.appendChild(th);
-
+						if (splitochrome.HEADLINE.category) { 
+    						th = document.createElement('th');
+    						th.innerText = runner.category;
+    						th.classList.add('left');
+    						tr.appendChild(th);
+						}
 						// leg
 						for ( var t = 0; t < c.controls.length; t++) {
 							td = document.createElement('td');
@@ -110,6 +128,7 @@ else {
 						// cumulated
 						tr = document.createElement('tr');
 						tbody.appendChild(tr);
+						// place holder for rank
 						th = document.createElement('th');
 						tr.appendChild(th);
 						th = document.createElement('th');
@@ -117,8 +136,11 @@ else {
 						th.classList.add('club');
 						th.classList.add('left');
 						tr.appendChild(th);
-						th = document.createElement('th');
-						tr.appendChild(th);
+                        // place holder for category
+						if (splitochrome.HEADLINE.category) { 
+						    th = document.createElement('th');
+						    tr.appendChild(th);
+						}
 						for ( var t = 0; t < c.controls.length; t++) {
 							td = document.createElement('td');
 							td.innerText = runner.cumTimes[t];
@@ -136,16 +158,37 @@ else {
 		parseDocument : function() {
 			splitochrome.BACKUP = document.getElementsByTagName('pre')[0];
 			splitochrome.PARENT = splitochrome.BACKUP.parentElement;
+			splitochrome.LANG = splitochrome.LANGS.fr;
 			var fullText = splitochrome.BACKUP.innerText;
 			var lines = fullText.split(/\n/);
 			var head = lines.shift();
 			var allCircuits = [];
-			splitochrome.HEADLINE.rank = head.indexOf('Pl');
-			splitochrome.HEADLINE.name = head.indexOf('Nom');
-			splitochrome.HEADLINE.category = head.indexOf('Cat.');
-			splitochrome.HEADLINE.time = head.indexOf('Temps')
-					- '3:59:59'.length;
-			splitochrome.HEADLINE.data = head.indexOf('Temps') + 'Temps'.length;
+			var extractLeftAligned = function(tt){
+                var from = head.indexOf(tt);
+                if (from === -1){
+                    return undefined;
+                }
+                var to = head.slice(from+tt.length).search(/\S/);
+                to += from;
+                return new Extractor(from, to);
+            };  
+            var extractRightAligned = function(tt, len){
+                var to = head.indexOf(tt);
+                if (to === -1){
+                    return undefined;
+                }
+                to += tt.length;
+                var from = to -len;
+                if (from < 0) {
+                    from = 0;
+                }
+                return new Extractor(from, to);
+            };  
+			splitochrome.HEADLINE.rank = extractRightAligned(splitochrome.LANG.rank, 2);
+			splitochrome.HEADLINE.name = extractLeftAligned(splitochrome.LANG.name);
+			splitochrome.HEADLINE.category = extractLeftAligned(splitochrome.LANG.category, 4);
+			splitochrome.HEADLINE.time = extractRightAligned(splitochrome.LANG.time, '3:59:59'.length);
+			splitochrome.HEADLINE.data = new Extractor(splitochrome.HEADLINE.time.to + 1);
 
 			splitochrome.dropNonCircuit(lines);
 			while (lines.length > 0) {
@@ -218,17 +261,10 @@ else {
 			}
 			var line2 = lines.shift();
 			var runner = {};
-			runner.rank = line1.slice(splitochrome.HEADLINE.rank,
-					splitochrome.HEADLINE.name - 1).trim();
-			runner.name = line1.slice(splitochrome.HEADLINE.name,
-					splitochrome.HEADLINE.category - 1).trim();
-			runner.category = line1.slice(splitochrome.HEADLINE.category,
-					splitochrome.HEADLINE.time - 1).trim();
-			runner.totalTime = line1.slice(splitochrome.HEADLINE.time,
-					splitochrome.HEADLINE.data - 1).trim();
-			runner.club = line2.slice(splitochrome.HEADLINE.name,
-					splitochrome.HEADLINE.category - 1).trim();
-
+			runner.rank = splitochrome.HEADLINE.rank && splitochrome.HEADLINE.rank.extract(line1) || '';
+			runner.name = splitochrome.HEADLINE.name && splitochrome.HEADLINE.name.extract(line1) || '';
+			runner.category = splitochrome.HEADLINE.category && splitochrome.HEADLINE.category.extract(line1) || '';
+			runner.club = splitochrome.HEADLINE.name && splitochrome.HEADLINE.name.extract(line2) || '';
 			
 			lines.unshift(line2);
 			lines.unshift(line1);
@@ -238,11 +274,11 @@ else {
 			var line;
 			for ( var i = 0; i < 2 * controlLinesCount; i += 2) {
 				line = lines.shift();
-				line = line.slice(splitochrome.HEADLINE.data);
-				totals += line;
+				line = splitochrome.HEADLINE.data.extract(line);
+				totals += ' ' + line;
 				line = lines.shift();
-				line = line.slice(splitochrome.HEADLINE.data);
-				legs += line;
+                line = splitochrome.HEADLINE.data.extract(line);
+				legs += ' ' + line;
 			}
 			runner.cumTimes = totals.trim().split(/\s+/);
 			runner.legTimes = legs.trim().split(/\s+/);
