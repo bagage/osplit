@@ -1,4 +1,9 @@
 {
+    "buttonFilterOn": {"message": "View only selected"},
+    "buttonFilterOff": {"message": "Remove filter"},
 	"extensionDesc": { "message": "View OE orienteering results like you never did before!" },
-	"extensionFullName": { "message": "O'Splits" }
+	"extensionFullName": { "message": "O'Splits" },
+    "labelCategory": { "message": "Cat." },
+    "labelName": { "message": "Name" },
+    "labelRank": { "message": "#" }
 }

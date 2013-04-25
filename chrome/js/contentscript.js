@@ -47,11 +47,11 @@ else {
 			var table = button.parentElement.parentElement;
 			if (table.classList.contains('restricted')) {
 				table.classList.remove('restricted');
-				button.innerText = "View only selected";
+				button.innerText = chrome.i18n.getMessage('buttonFilterOn');
 			}
 			else{
 				table.classList.add('restricted');
-				button.innerText = "Remove filter";
+				button.innerText = chrome.i18n.getMessage('buttonFilterOff');
 			}
 		},
 		generateTables : function() {
@@ -72,24 +72,24 @@ else {
 					var caption = table.createCaption();
 					caption.innerText = c.description;
 					var button = document.createElement('button');
-					button.innerText = "View only selected";
+					button.innerText = chrome.i18n.getMessage('buttonFilterOn');
 					button.addEventListener('click', splitochrome.toggleRestricted);
 					caption.appendChild(button);
 					var thead = table.createTHead();
 
 					th = document.createElement('th');
-					th.innerText = "#";
+					th.innerText = chrome.i18n.getMessage('labelRank');
 					th.classList.add('right');
 					thead.appendChild(th);
 
 					th = document.createElement('th');
-					th.innerText = "Name";
+					th.innerText = chrome.i18n.getMessage('labelName');
 					th.classList.add('left');
 					thead.appendChild(th);
 					
 					if (splitochrome.HEADLINE.category) { 
     					th = document.createElement('th');
-    					th.innerText = "Cat.";
+    					th.innerText = chrome.i18n.getMessage('labelCategory');
     					th.classList.add('left');
     					thead.appendChild(th);
 					}

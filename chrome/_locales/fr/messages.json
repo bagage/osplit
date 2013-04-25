@@ -1,0 +1,9 @@
+{
+    "buttonFilterOn": {"message": "Voir uniquement sélectionnés"},
+    "buttonFilterOff": {"message": "Supprimer le filtre"},
+	"extensionDesc": { "message": "Visualisez les résultats d'OE comme jamais!" },
+	"extensionFullName": { "message": "O'Splits" },
+    "labelCategory": { "message": "Cat." },
+    "labelName": { "message": "Nom" },
+    "labelRank": { "message": "Pl." }
+}
