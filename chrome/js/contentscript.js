@@ -232,6 +232,7 @@ else {
 		case 'parse':
 			splitochrome.CIRCUITS = splitochrome.parseDocument();
 			console.log("Parsing document found " + splitochrome.CIRCUITS.length + " circuits");
+		    chrome.extension.sendMessage({cmd:'parseok', count:splitochrome.CIRCUITS.length });
 			break;
 		case 'showtables':
 			splitochrome.onIconClicked();
