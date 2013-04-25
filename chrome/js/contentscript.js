@@ -1,5 +1,5 @@
 'use strict';
-if (window.splitochrome) {
+if (window.global_splitochrome) {
 	console.log("Split O' Chrome already loaded");
 }
 else {
@@ -7,12 +7,12 @@ else {
 	String.prototype.trim = String.prototype.trim || function() {
 		return this.replace(/^\s+|\s+$/g, '');
 	};
-	window.splitochrome = {
+	var splitochrome = {
 		CIRCUITS : undefined,
 		PARENT : undefined,
 		OURDIV : undefined,
 		BACKUP : undefined,
-		RE_CIRCUIT : /[A-Z]\s+\(\d+\)\s+[\d\.]+\skm\s+\d+\s+P\s*/,
+		RE_CIRCUIT : /^\S+/,
 		HEADLINE : {},
 		onRunnerClicked : function(event) {
 			if (this.classList.contains('selected')) {
@@ -23,10 +23,12 @@ else {
 		},
 		onIconClicked : function() {
 			if (splitochrome.OURDIV) {
+				console.log("Split O' Chrome reverting to original");
 				splitochrome.PARENT.removeChild(splitochrome.OURDIV);
 				splitochrome.PARENT.appendChild(splitochrome.BACKUP);
 				splitochrome.OURDIV = null;
 			} else {
+				console.log("Split O' Chrome showing tables");
 				splitochrome.PARENT.removeChild(splitochrome.BACKUP);
 				splitochrome.OURDIV = document.createElement('div');
 				splitochrome.OURDIV.id = 'splitochrome';
@@ -224,11 +226,12 @@ else {
 			return runner;
 		}
 	};
+	window.global_splitochrome = splitochrome;
 	chrome.runtime.onMessage.addListener(function(msg) {
 		switch (msg.cmd) {
 		case 'parse':
-			console.log("Parsing document");
 			splitochrome.CIRCUITS = splitochrome.parseDocument();
+			console.log("Parsing document found " + splitochrome.CIRCUITS.length + " circuits");
 			break;
 		case 'showtables':
 			splitochrome.onIconClicked();
