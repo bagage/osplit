@@ -1,11 +1,8 @@
-#splitochrome {
-}
-
 #splitochrome table {
 	background: white;
 	border: none;
 	border-collapse: collapse;
-	font: normal 12px verdana, arial, helvetica, sans-serif;
+	font: normal 11px verdana, arial, helvetica, sans-serif;
 	margin-top: 2em;
 	overflow-x: scroll; 
 }
@@ -19,24 +16,29 @@
 #splitochrome th {
     font-weight: bold;
  	white-space: nowrap;
- 	color: #4E4E4E;
+	color: #4E4E4E;
+}
+
+#splitochrome .best {
+	color: #0000FF;
 }
 
 #splitochrome .left {
     text-align: left;
+    padding-right: 0.5em;
 }
 
-#splitochrome .right {
+#splitochrome .right, #splitochrome td {
     text-align: right;
+    padding-left: 0.5em;
 }
 
-#splitochrome td {
-    padding-left: 1em;
-    text-align: right;
+#splitochrome .ctrlid {
+	font-size: 9px;
+	color: #9E9E9E;
 }
-
-#splitochrome td.total {
-    font-weight: bold;
+#splitochrome .club {
+	color: #9E9E9E;
 }
 #splitochrome tbody:nth-child(n).selected, #splitochrome tbody:nth-child(n):hover.selected {
     background-color: #FFC984;

@@ -1,9 +1,9 @@
 'use strict';
 if (window.global_splitochrome) {
-	console.log("Split O' Chrome already loaded");
+	console.log("O'Splits: already loaded");
 }
 else {
-	console.log("Loading Split O' Chrome");
+	console.log("O'Splits: loading...");
 	String.prototype.trim = String.prototype.trim || function() {
 		return this.replace(/^\s+|\s+$/g, '');
 	};
@@ -21,14 +21,14 @@ else {
 				this.classList.add('selected');
 			}
 		},
-		onIconClicked : function() {
+		generateTables : function() {
 			if (splitochrome.OURDIV) {
-				console.log("Split O' Chrome reverting to original");
+				console.log("O'Splits: reverting to original");
 				splitochrome.PARENT.removeChild(splitochrome.OURDIV);
 				splitochrome.PARENT.appendChild(splitochrome.BACKUP);
 				splitochrome.OURDIV = null;
 			} else {
-				console.log("Split O' Chrome showing tables");
+				console.log("O'Splits: showing tables");
 				splitochrome.PARENT.removeChild(splitochrome.BACKUP);
 				splitochrome.OURDIV = document.createElement('div');
 				splitochrome.OURDIV.id = 'splitochrome';
@@ -56,7 +56,7 @@ else {
 
 					for ( var j = 0; j < c.controls.length; j++) {
 						th = document.createElement('th');
-						th.innerText = c.controls[j].n;
+						th.innerHTML = c.controls[j].n + '&nbsp;<span class="ctrlid">' + c.controls[j].id + '</span>';
 						th.classList.add('right');
 						thead.appendChild(th);
 					}
@@ -93,18 +93,20 @@ else {
 						// cumulated
 						tr = document.createElement('tr');
 						tbody.appendChild(tr);
-						for ( var k = 0; k < 3; k++) {
-							th = document.createElement('th');
-							tr.appendChild(th);
-						}
+						th = document.createElement('th');
+						tr.appendChild(th);
+						th = document.createElement('th');
+						th.innerText = runner.club;
+						th.classList.add('club');
+						th.classList.add('left');
+						tr.appendChild(th);
+						th = document.createElement('th');
+						tr.appendChild(th);
 						for ( var t = 0; t < c.controls.length; t++) {
 							td = document.createElement('td');
 							td.innerText = runner.cumTimes[t];
 							td.classList.add('right');
 							tr.appendChild(td);
-						}
-						if (td) {
-							td.classList.add('total');
 						}
 					}
 					splitochrome.OURDIV.appendChild(table);
@@ -206,7 +208,10 @@ else {
 					splitochrome.HEADLINE.time - 1).trim();
 			runner.totalTime = line1.slice(splitochrome.HEADLINE.time,
 					splitochrome.HEADLINE.data - 1).trim();
+			runner.club = line2.slice(splitochrome.HEADLINE.name,
+					splitochrome.HEADLINE.category - 1).trim();
 
+			
 			lines.unshift(line2);
 			lines.unshift(line1);
 
@@ -231,11 +236,11 @@ else {
 		switch (msg.cmd) {
 		case 'parse':
 			splitochrome.CIRCUITS = splitochrome.parseDocument();
-			console.log("Parsing document found " + splitochrome.CIRCUITS.length + " circuits");
+			console.log("O'Splits: Parsing document found " + splitochrome.CIRCUITS.length + " circuits");
 		    chrome.extension.sendMessage({cmd:'parseok', count:splitochrome.CIRCUITS.length });
 			break;
 		case 'showtables':
-			splitochrome.onIconClicked();
+			splitochrome.generateTables();
 			break;
 		}
 
