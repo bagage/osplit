@@ -18,6 +18,8 @@
 
 #splitochrome th {
     font-weight: bold;
+ 	white-space: nowrap;
+ 	color: #4E4E4E;
 }
 
 #splitochrome .left {
@@ -36,18 +38,18 @@
 #splitochrome td.total {
     font-weight: bold;
 }
-
-#splitochrome tr:nth-child(4n+1) {
+#splitochrome tbody:nth-child(n).selected, #splitochrome tbody:nth-child(n):hover.selected {
+    background-color: #FFC984;
+}
+#splitochrome tbody:nth-child(n):hover {
     background-color: #FFE9CD;
 }
-#splitochrome tr:nth-child(4n+2) {
-    background-color: #FFE9CD;
-    color: #FFA635
+#splitochrome tbody:nth-child(2n+1) {
+    background-color: #F1F1F1;
 }
-#splitochrome tr:nth-child(4n+3) {
-    background-color: white;
+#splitochrome tbody:nth-child(2n) {
+    background-color: #white;
 }
-#splitochrome tr:nth-child(4n) {
-    color: #FFA635;
-	background-color: white;
+#splitochrome tbody tr:nth-child(2n) {
+    color: #C99F6B;
 }

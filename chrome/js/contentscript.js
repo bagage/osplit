@@ -2,6 +2,17 @@
 String.prototype.trim = String.prototype.trim || function() {
     return this.replace(/^\s+|\s+$/g, '');
 };
+
+function onRunnerClicked(event) {
+	console.log("Click!");
+	if (this.classList.contains('selected')) {
+		this.classList.remove('selected');
+	}
+	else {
+		this.classList.add('selected');
+	}
+}
+
 var CIRCUITS;
 var PARENT;
 var OURDIV;
@@ -19,14 +30,21 @@ function onIconClicked() {
         for (var i = 0; i < CIRCUITS.length; i++) {
             var c = CIRCUITS[i];
             var table = document.createElement('table');
-          
+            var tbody, th, tr, td = undefined;
             table.createCaption().innerText = c.description;
             var thead = table.createTHead();
-            var th = document.createElement('th');
+
+            th = document.createElement('th');
+            th.innerText = "#";
+            th.classList.add('right');
+            thead.appendChild(th);
+            
+            th = document.createElement('th');
             th.innerText = "Name";
             th.classList.add('left');
             thead.appendChild(th);
-            var th = document.createElement('th');
+            
+            th = document.createElement('th');
             th.innerText = "Cat.";
             th.classList.add('left');
             thead.appendChild(th);
@@ -37,13 +55,18 @@ function onIconClicked() {
                 th.classList.add('right');
                 thead.appendChild(th);
             }
-            var tbody = table.createTBody();
             for ( var r = 0; r < c.runners.length; r++){
                 var runner = c.runners[r];
-                var tr, td = undefined;
-                // leg
+                tbody = table.createTBody();
+                tbody.addEventListener('click', onRunnerClicked);
                 tr = document.createElement('tr');
                 tbody.appendChild(tr);
+
+                th = document.createElement('th');
+                th.innerText = r + 1;
+                th.classList.add('right');
+                tr.appendChild(th);
+                
                 th = document.createElement('th');
                 th.innerText = runner.name;
                 th.classList.add('left');
@@ -54,6 +77,7 @@ function onIconClicked() {
                 th.classList.add('left');
                 tr.appendChild(th);
                 
+                // leg
                 for ( var t = 0; t < c.controls.length; t++){
                     td = document.createElement('td');
                     td.innerText = runner.legTimes[t];
@@ -63,10 +87,10 @@ function onIconClicked() {
                 // cumulated
                 tr = document.createElement('tr');
                 tbody.appendChild(tr);
-                th = document.createElement('th');
-                tr.appendChild(th);
-                th = document.createElement('th');
-                tr.appendChild(th);
+                for ( var k = 0; k < 3 ;k++) {
+                	th = document.createElement('th');
+                	tr.appendChild(th);
+                }
                 for (var t = 0; t < c.controls.length; t++){
                     td = document.createElement('td');
                     td.innerText = runner.cumTimes[t];
