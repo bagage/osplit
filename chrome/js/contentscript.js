@@ -104,6 +104,7 @@ else {
 							td = document.createElement('td');
 							td.innerText = runner.legTimes[t];
 							td.classList.add('right');
+							td.title = runner.name + " @ " + c.controls[t].n;
 							tr.appendChild(td);
 						}
 						// cumulated
@@ -122,6 +123,7 @@ else {
 							td = document.createElement('td');
 							td.innerText = runner.cumTimes[t];
 							td.classList.add('right');
+							td.title = runner.name + " @ " + c.controls[t].n;
 							tr.appendChild(td);
 						}
 					}
