@@ -21,6 +21,17 @@ else {
 				this.classList.add('selected');
 			}
 		},
+		toggleRestricted: function(event) {
+			var table = this.parentElement.parentElement;
+			if (table.classList.contains('restricted')) {
+				table.classList.remove('restricted');
+				this.innerText = "View only selected";
+			}
+			else{
+				table.classList.add('restricted');
+				this.innerText = "Remove filter";
+			}
+		},
 		generateTables : function() {
 			if (splitochrome.OURDIV) {
 				console.log("O'Splits: reverting to original");
@@ -36,7 +47,12 @@ else {
 					var c = splitochrome.CIRCUITS[i];
 					var table = document.createElement('table');
 					var tbody, th, tr, td = undefined;
-					table.createCaption().innerText = c.description;
+					var caption = table.createCaption();
+					caption.innerText = c.description;
+					var button = document.createElement('button');
+					button.innerText = "View only selected";
+					button.addEventListener('click', splitochrome.toggleRestricted);
+					caption.appendChild(button);
 					var thead = table.createTHead();
 
 					th = document.createElement('th');
