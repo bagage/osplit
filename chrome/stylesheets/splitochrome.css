@@ -3,7 +3,7 @@
 	border: none;
 	border-collapse: collapse;
 	font: normal 11px verdana, arial, helvetica, sans-serif;
-	margin-top: 2em;
+	margin-top: 3em;
 	overflow-x: scroll; 
 }
 
@@ -30,8 +30,10 @@
 
 #splitochrome caption {
 	font-weight: bold;
-	text-align: center;
+	text-align: left;
 	font-size: 16px;
+	margin-left: 2em;
+    margin-bottom: 0.5em;
 }
 
 #splitochrome th {
@@ -46,22 +48,26 @@
 
 #splitochrome .left {
     text-align: left;
-    padding-right: 0.5em;
+    padding-left: 0.7em;
 }
 
 #splitochrome .right, #splitochrome td {
     text-align: right;
-    padding-left: 0.5em;
+    padding-right: 0.7em;
 }
-
+#splitochrome td.last {
+    padding-right: 0;
+}
 #splitochrome .ctrlid {
 	font-size: 9px;
-	color: #9E9E9E;
+	color: #8B8B8B;
+    font-weight: normal;
 }
 #splitochrome .club {
-	color: #9E9E9E;
+	color: #8B8B8B;
+	font-weight: normal;
 }
-#splitochrome tbody:nth-child(n).selected, #splitochrome tbody:nth-child(n):hover.selected {
+#splitochrome table:not(.restricted) tbody:nth-child(n).selected, #splitochrome table:not(.restricted) tbody:nth-child(n):hover.selected {
     background-color: #FFC984;
 }
 #splitochrome tbody:nth-child(n):hover {
@@ -74,5 +80,5 @@
     background-color: #white;
 }
 #splitochrome tbody tr:nth-child(2n) {
-    color: #9E9E9E;
+    color: #8B8B8B;
 }

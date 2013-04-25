@@ -32,11 +32,15 @@ else {
 		RE_CIRCUIT : /^\S+/,
 		HEADLINE : {},
 		onRunnerClicked : function(event) {
-			if (this.classList.contains('selected')) {
-				this.classList.remove('selected');
-			} else {
-				this.classList.add('selected');
-			}
+            var tbody = this;
+            var table = tbody.parentElement;
+            if (!table.classList.contains('restricted')) {
+    			if (tbody.classList.contains('selected')) {
+    			    tbody.classList.remove('selected');
+    			} else {
+    			    tbody.classList.add('selected');
+    			}
+            }
 		},
 		toggleRestricted: function(event) {
 		    var button = this;
@@ -126,6 +130,9 @@ else {
 							td.title = runner.name + " @ " + c.controls[t].n;
 							tr.appendChild(td);
 						}
+						if (c.controls.length) {
+						    td.classList.add('last');
+						}
 						// cumulated
 						tr = document.createElement('tr');
 						tbody.appendChild(tr);
@@ -148,6 +155,9 @@ else {
 							td.classList.add('right');
 							td.title = runner.name + " @ " + c.controls[t].n;
 							tr.appendChild(td);
+						}
+						if (c.controls.length) {
+						    td.classList.add('last');
 						}
 					}
 					splitochrome.OURDIV.appendChild(table);
