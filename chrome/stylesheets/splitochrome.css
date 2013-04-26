@@ -1,4 +1,4 @@
-#splitochrome table {
+#osplits table {
 	background: white;
 	border: none;
 	border-collapse: collapse;
@@ -7,11 +7,11 @@
 	overflow-x: scroll; 
 }
 
-#splitochrome table.restricted tbody:not(.selected) {
+#osplits table.restricted tbody:not(.selected) {
 	display: none;
 }
 
-#splitochrome button {
+#osplits button {
 	border-style:none;
 	background-color: #EBB166;
 	text-decoration: none;
@@ -24,11 +24,11 @@
 	top: -1px;
 }
 
-#splitochrome button:hover {
+#osplits button:hover {
 	background-color: #C4975E;
 }
 
-#splitochrome caption {
+#osplits caption {
 	font-weight: bold;
 	text-align: left;
 	font-size: 16px;
@@ -36,49 +36,49 @@
     margin-bottom: 0.5em;
 }
 
-#splitochrome th {
+#osplits th {
     font-weight: bold;
  	white-space: nowrap;
 	color: #4E4E4E;
 }
 
-#splitochrome .best {
+#osplits .best {
 	color: #0000FF;
 }
 
-#splitochrome .left {
+#osplits .left {
     text-align: left;
     padding-left: 0.7em;
 }
 
-#splitochrome .right, #splitochrome td {
+#osplits .right, #osplits td {
     text-align: right;
     padding-right: 0.7em;
 }
-#splitochrome td.last {
+#osplits td.last {
     padding-right: 0;
 }
-#splitochrome .ctrlid {
+#osplits .ctrlid {
 	font-size: 9px;
 	color: #8B8B8B;
     font-weight: normal;
 }
-#splitochrome .club {
+#osplits .club {
 	color: #8B8B8B;
 	font-weight: normal;
 }
-#splitochrome table:not(.restricted) tbody:nth-child(n).selected, #splitochrome table:not(.restricted) tbody:nth-child(n):hover.selected {
+#osplits table:not(.restricted) tbody:nth-child(n).selected, #osplits table:not(.restricted) tbody:nth-child(n):hover.selected {
     background-color: #FFC984;
 }
-#splitochrome tbody:nth-child(n):hover {
+#osplits tbody:nth-child(n):hover {
     background-color: #FFE9CD;
 }
-#splitochrome tbody:nth-child(2n+1) {
+#osplits tbody:nth-child(2n+1) {
     background-color: #F1F1F1;
 }
-#splitochrome tbody:nth-child(2n) {
+#osplits tbody:nth-child(2n) {
     background-color: #white;
 }
-#splitochrome tbody tr:nth-child(2n) {
+#osplits tbody tr:nth-child(2n) {
     color: #8B8B8B;
 }
