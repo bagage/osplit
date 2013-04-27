@@ -7,9 +7,9 @@
 	overflow-x: scroll; 
 }
 
-#osplits table.restricted tbody:not(.selected) {
+/* #osplits table.restricted tbody:not(.selected) {
 	display: none;
-}
+} */
 
 #osplits button {
 	border-style:none;

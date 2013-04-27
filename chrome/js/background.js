@@ -14,9 +14,12 @@ function onMessage(msg, sender) {
 	switch (msg.cmd) {
 	case 'oedetected':
 		console.log("O'Splits: OE document detected, injecting script");
-	    chrome.tabs.executeScript(tabid, {file:'/js/contentscript.js'}, function() {
-	    	chrome.tabs.sendMessage(tabid, {cmd:'parse'});
-	    });
+		chrome.tabs.executeScript(tabid, {file:'/js/jquery-2.0.0.min.js'}, function() {
+		    chrome.tabs.executeScript(tabid, {file:'/js/contentscript.js'}, function() {
+		        chrome.tabs.sendMessage(tabid, {cmd:'parse'});
+		    });
+        });
+
 		break;
 	case 'parseok':
 		console.log("O'Splits: OE document detected with " + msg.count + " circuits");

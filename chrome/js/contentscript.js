@@ -1,5 +1,5 @@
 'use strict';
-if (window.global_osplits_initialized) {
+if (window.osplits) {
 	console.log("O'Splits: already loaded");
 }
 else {
@@ -76,7 +76,7 @@ else {
 		storeCircuitTxn: function(number, circuit) {
 			var noop = function(){};
 			var storeCircuit = function(tx) {
-				tx.executeSql("INSERT INTO circuit(number, description, ctrlCount) VALUES (?,?,?)", [number, circuit.description, circuit.controls.length],
+				tx.executeSql("INSERT INTO circuit(number, description, ctrlCount) VALUES (?,?,?)", [number, circuit.description, circuit.controls.length - 1],
 				        function(txdummy, result){
 							for(var i=0; i<circuit.runners.length;i++) {
 								storeRunner(tx, result.insertId, circuit.runners[i]);
@@ -287,15 +287,19 @@ else {
 			    var button = this;
 				var table = button.parentElement.parentElement;
 				if (table.classList.contains('restricted')) {
-					table.classList.remove('restricted');
-					button.innerText = chrome.i18n.getMessage('buttonFilterOn');
+				    $(table).find('tbody').show('fast', function(){
+				        table.classList.remove('restricted');
+				        button.innerText = chrome.i18n.getMessage('buttonFilterOn');
+				    });
 				}
 				else{
-					table.classList.add('restricted');
-					button.innerText = chrome.i18n.getMessage('buttonFilterOff');
+					$(table).find('tbody').not('.selected').hide(function(){
+					    table.classList.add('restricted');
+					    button.innerText = chrome.i18n.getMessage('buttonFilterOff');
+					});
 				}
 			},
-			generateTables : function() {
+			toggleDisplay : function() {
 				if (osplits.parser.OURDIV) {
 					console.log("O'Splits: reverting to original");
 					osplits.parser.PARENT.removeChild(osplits.parser.OURDIV);
@@ -304,111 +308,113 @@ else {
 				} else {
 					console.log("O'Splits: showing tables");
 					osplits.parser.PARENT.removeChild(osplits.parser.BACKUP);
-					osplits.parser.OURDIV = document.createElement('div');
-					osplits.parser.OURDIV.id = 'osplits';
-					for ( var i = 0; i < osplits.parser.CIRCUITS.length; i++) {
-						var c = osplits.parser.CIRCUITS[i];
-						var table = document.createElement('table');
-						var tbody, th, tr, td = undefined;
-						var caption = table.createCaption();
-						caption.innerText = c.description;
-						var button = document.createElement('button');
-						button.innerText = chrome.i18n.getMessage('buttonFilterOn');
-						button.addEventListener('click', osplits.tables.toggleRestricted);
-						caption.appendChild(button);
-						var thead = table.createTHead();
-
-						th = document.createElement('th');
-						th.innerText = chrome.i18n.getMessage('labelRank');
-						th.classList.add('right');
-						thead.appendChild(th);
-
-						th = document.createElement('th');
-						th.innerText = chrome.i18n.getMessage('labelName');
-						th.classList.add('left');
-						thead.appendChild(th);
-						
-						if (osplits.parser.HEADLINE.category) { 
-	    					th = document.createElement('th');
-	    					th.innerText = chrome.i18n.getMessage('labelCategory');
-	    					th.classList.add('left');
-	    					thead.appendChild(th);
-						}
-						for ( var j = 0; j < c.controls.length; j++) {
-							th = document.createElement('th');
-							th.innerHTML = c.controls[j].n + '&nbsp;<span class="ctrlid">' + c.controls[j].id + '</span>';
-							th.classList.add('right');
-							thead.appendChild(th);
-						}
-						for ( var r = 0; r < c.runners.length; r++) {
-							var runner = c.runners[r];
-							tbody = table.createTBody();
-							tbody.addEventListener('click', osplits.tables.onRunnerClicked);
-							tr = document.createElement('tr');
-							tbody.appendChild(tr);
-
-							th = document.createElement('th');
-							th.innerText = r + 1;
-							th.classList.add('right');
-							tr.appendChild(th);
-
-							th = document.createElement('th');
-							th.innerText = runner.name;
-							th.classList.add('left');
-							tr.appendChild(th);
-
-							if (osplits.parser.HEADLINE.category) { 
-	    						th = document.createElement('th');
-	    						th.innerText = runner.category;
-	    						th.classList.add('left');
-	    						tr.appendChild(th);
-							}
-							// leg
-							for ( var t = 0; t < c.controls.length; t++) {
-								td = document.createElement('td');
-								td.innerText = runner.legTimes[t] || '-----';
-								td.classList.add('right');
-								td.title = runner.name + " @ " + c.controls[t].n;
-								tr.appendChild(td);
-							}
-							if (c.controls.length) {
-							    td.classList.add('last');
-							}
-							// cumulated
-							tr = document.createElement('tr');
-							tbody.appendChild(tr);
-							// place holder for rank
-							th = document.createElement('th');
-							tr.appendChild(th);
-							th = document.createElement('th');
-							th.innerText = runner.club;
-							th.classList.add('club');
-							th.classList.add('left');
-							tr.appendChild(th);
-	                        // place holder for category
-							if (osplits.parser.HEADLINE.category) { 
-							    th = document.createElement('th');
-							    tr.appendChild(th);
-							}
-							for ( var t = 0; t < c.controls.length; t++) {
-								td = document.createElement('td');
-								td.innerText = runner.cumTimes[t] || '-----';
-								td.classList.add('right');
-								td.title = runner.name + " @ " + c.controls[t].n;
-								tr.appendChild(td);
-							}
-							if (c.controls.length) {
-							    td.classList.add('last');
-							}
-						}
-						osplits.parser.OURDIV.appendChild(table);
-					}
+					osplits.tables.generateTables();
 					osplits.parser.PARENT.appendChild(osplits.parser.OURDIV);
 				}
+			},
+			generateTables : function() {
+                osplits.parser.OURDIV = document.createElement('div');
+                osplits.parser.OURDIV.id = 'osplits';
+                for ( var i = 0; i < osplits.parser.CIRCUITS.length; i++) {
+                    var c = osplits.parser.CIRCUITS[i];
+                    var table = document.createElement('table');
+                    var tbody, th, tr, td = undefined;
+                    var caption = table.createCaption();
+                    caption.innerText = c.description;
+                    var button = document.createElement('button');
+                    button.innerText = chrome.i18n.getMessage('buttonFilterOn');
+                    button.addEventListener('click', osplits.tables.toggleRestricted);
+                    caption.appendChild(button);
+                    var thead = table.createTHead();
 
-			},			
+                    th = document.createElement('th');
+                    th.innerText = chrome.i18n.getMessage('labelRank');
+                    th.classList.add('right');
+                    thead.appendChild(th);
+
+                    th = document.createElement('th');
+                    th.innerText = chrome.i18n.getMessage('labelName');
+                    th.classList.add('left');
+                    thead.appendChild(th);
+                    
+                    if (osplits.parser.HEADLINE.category) { 
+                        th = document.createElement('th');
+                        th.innerText = chrome.i18n.getMessage('labelCategory');
+                        th.classList.add('left');
+                        thead.appendChild(th);
+                    }
+                    for ( var j = 0; j < c.controls.length; j++) {
+                        th = document.createElement('th');
+                        th.innerHTML = c.controls[j].n + '&nbsp;<span class="ctrlid">' + c.controls[j].id + '</span>';
+                        th.classList.add('right');
+                        thead.appendChild(th);
+                    }
+                    for ( var r = 0; r < c.runners.length; r++) {
+                        var runner = c.runners[r];
+                        tbody = table.createTBody();
+                        tbody.addEventListener('click', osplits.tables.onRunnerClicked);
+                        tr = document.createElement('tr');
+                        tbody.appendChild(tr);
+
+                        th = document.createElement('th');
+                        th.innerText = r + 1;
+                        th.classList.add('right');
+                        tr.appendChild(th);
+
+                        th = document.createElement('th');
+                        th.innerText = runner.name;
+                        th.classList.add('left');
+                        tr.appendChild(th);
+
+                        if (osplits.parser.HEADLINE.category) { 
+                            th = document.createElement('th');
+                            th.innerText = runner.category;
+                            th.classList.add('left');
+                            tr.appendChild(th);
+                        }
+                        // leg
+                        for ( var t = 0; t < c.controls.length; t++) {
+                            td = document.createElement('td');
+                            td.innerText = runner.legTimes[t] || '-----';
+                            td.classList.add('right');
+                            td.title = runner.name + " @ " + c.controls[t].n;
+                            tr.appendChild(td);
+                        }
+                        if (c.controls.length) {
+                            td.classList.add('last');
+                        }
+                        // cumulated
+                        tr = document.createElement('tr');
+                        tbody.appendChild(tr);
+                        // place holder for rank
+                        th = document.createElement('th');
+                        tr.appendChild(th);
+                        th = document.createElement('th');
+                        th.innerText = runner.club;
+                        th.classList.add('club');
+                        th.classList.add('left');
+                        tr.appendChild(th);
+                        // place holder for category
+                        if (osplits.parser.HEADLINE.category) { 
+                            th = document.createElement('th');
+                            tr.appendChild(th);
+                        }
+                        for ( var t = 0; t < c.controls.length; t++) {
+                            td = document.createElement('td');
+                            td.innerText = runner.cumTimes[t] || '-----';
+                            td.classList.add('right');
+                            td.title = runner.name + " @ " + c.controls[t].n;
+                            tr.appendChild(td);
+                        }
+                        if (c.controls.length) {
+                            td.classList.add('last');
+                        }
+                    }
+                    osplits.parser.OURDIV.appendChild(table);
+                }			    
+			}
 	};
-	window.global_osplits_initialized = true;
+	window.osplits = osplits;
 	chrome.runtime.onMessage.addListener(function(msg) {
 		switch (msg.cmd) {
 		case 'parse':
@@ -417,7 +423,7 @@ else {
 		    chrome.extension.sendMessage({cmd:'parseok', count:osplits.parser.CIRCUITS.length });
 			break;
 		case 'showtables':
-			osplits.tables.generateTables();
+			osplits.tables.toggleDisplay();
 			break;
 		}
 
