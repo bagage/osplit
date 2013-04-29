@@ -68,9 +68,9 @@ else {
 				tx.executeSql("DROP TABLE IF EXISTS time");
 				tx.executeSql("DROP TABLE IF EXISTS runner");
 				tx.executeSql("DROP TABLE IF EXISTS circuit");
-			    tx.executeSql("CREATE TABLE IF NOT EXISTS circuit(id INTEGER PRIMARY KEY ASC, number INTEGER, description TEXT, ctrlCount INTEGER)", []);
-			    tx.executeSql("CREATE TABLE IF NOT EXISTS runner(id INTEGER PRIMARY KEY ASC, circuitId INTEGER, name TEXT, club TEXT, category TEXT)", []);
-			    tx.executeSql("CREATE TABLE IF NOT EXISTS time(id INTEGER PRIMARY KEY ASC, circuitId INTEGER, runnerId INTEGER, numInCircuit INTEGER, fromCtrl TEXT, toCtrl TEXT, legSec INTEGER, cumSec INTEGER)", []);
+			    tx.executeSql("CREATE TABLE IF NOT EXISTS circuit(id INTEGER PRIMARY KEY ASC, number INTEGER, description TEXT, ctrlCount INTEGER)");
+			    tx.executeSql("CREATE TABLE IF NOT EXISTS runner(id INTEGER PRIMARY KEY ASC, circuitId INTEGER, rank INTEGER, name TEXT, club TEXT, category TEXT)");
+			    tx.executeSql("CREATE TABLE IF NOT EXISTS time(id INTEGER PRIMARY KEY ASC, circuitId INTEGER, runnerId INTEGER, numInCircuit INTEGER, fromCtrl TEXT, toCtrl TEXT, legSec INTEGER, cumSec INTEGER)");
 			});
 		},
 		storeCircuitTxn: function(number, circuit) {
@@ -84,7 +84,7 @@ else {
 						}, osplits.webdb.onError);
 			};
 			var storeRunner = function(tx, circuitId, runner) {
-				tx.executeSql("INSERT INTO runner(circuitId, name, club, category) VALUES (?,?,?,?)", [circuitId, runner.name, runner.club, runner.category],
+				tx.executeSql("INSERT INTO runner(circuitId, rank, name, club, category) VALUES (?,?,?,?,?)", [circuitId, runner.rank, runner.name, runner.club, runner.category],
 				        function(txdummy, result){
 							var fromCtrl = 'D';
 							for(var i=0; i<circuit.controls.length;i++) {
@@ -278,147 +278,190 @@ else {
 	    return tmp.trim();
 	},
 	osplits.tables = {
-			onRunnerClicked : function(event) {
-	            var tbody = this;
-	            var table = tbody.parentElement;
-	            if (!table.classList.contains('restricted')) {
-	    			if (tbody.classList.contains('selected')) {
-	    			    tbody.classList.remove('selected');
-	    			} else {
-	    			    tbody.classList.add('selected');
-	    			}
-	            }
-			},
-			toggleRestricted: function(event) {
-			    var button = this;
-				var table = button.parentElement.parentElement;
-				if (table.classList.contains('restricted')) {
-				    $(table).find('tbody').show('fast', function(){
-				        table.classList.remove('restricted');
-				        button.innerText = chrome.i18n.getMessage('buttonFilterOn');
-				    });
-				}
-				else{
-					$(table).find('tbody').not('.selected').hide(function(){
-					    table.classList.add('restricted');
-					    button.innerText = chrome.i18n.getMessage('buttonFilterOff');
-					});
-				}
-			},
-			toggleDisplay : function() {
-				if (osplits.parser.OURDIV) {
-					console.log("O'Splits: reverting to original");
-					osplits.parser.PARENT.removeChild(osplits.parser.OURDIV);
-					osplits.parser.PARENT.appendChild(osplits.parser.BACKUP);
-					osplits.parser.OURDIV = null;
-				} else {
-					console.log("O'Splits: showing tables");
-					osplits.parser.PARENT.removeChild(osplits.parser.BACKUP);
-					osplits.tables.generateTables();
-					osplits.parser.PARENT.appendChild(osplits.parser.OURDIV);
-				}
-			},
-			generateTables : function() {
-                osplits.parser.OURDIV = document.createElement('div');
-                osplits.parser.OURDIV.id = 'osplits';
-                for ( var i = 0; i < osplits.parser.CIRCUITS.length; i++) {
-                    var c = osplits.parser.CIRCUITS[i];
-                    var table = document.createElement('table');
-                    var tbody, th, tr, td = undefined;
-                    var caption = table.createCaption();
-                    caption.innerText = c.description;
-                    var button = document.createElement('button');
-                    button.innerText = chrome.i18n.getMessage('buttonFilterOn');
-                    button.addEventListener('click', osplits.tables.toggleRestricted);
-                    caption.appendChild(button);
-                    var thead = table.createTHead();
+		onRunnerClicked : function(event) {
+            var tbody = this;
+            var table = tbody.parentElement;
+            if (!table.classList.contains('restricted')) {
+    			if (tbody.classList.contains('selected')) {
+    			    tbody.classList.remove('selected');
+    			} else {
+    			    tbody.classList.add('selected');
+    			}
+            }
+		},
+		toggleRestricted: function(event) {
+		    var button = this;
+			var table = button.parentElement.parentElement;
+			if (table.classList.contains('restricted')) {
+			    $(table).find('tbody').show('fast', function(){
+			        table.classList.remove('restricted');
+			        button.innerText = chrome.i18n.getMessage('buttonFilterOn');
+			    });
+			}
+			else{
+				$(table).find('tbody').not('.selected').hide(function(){
+				    table.classList.add('restricted');
+				    button.innerText = chrome.i18n.getMessage('buttonFilterOff');
+				});
+			}
+		},
+		toggleDisplay : function() {
+			if (osplits.parser.OURDIV) {
+				console.log("O'Splits: reverting to original");
+				osplits.parser.PARENT.removeChild(osplits.parser.OURDIV);
+				osplits.parser.PARENT.appendChild(osplits.parser.BACKUP);
+				osplits.parser.OURDIV = null;
+			} else {
+				console.log("O'Splits: showing tables");
+				osplits.parser.PARENT.removeChild(osplits.parser.BACKUP);
+				osplits.tables.generateTables();
+			}
+		},
+		onCompleted : function() {
+		    osplits.parser.PARENT.appendChild(osplits.parser.OURDIV);
+		},
+		generateOneCircuit : function(tx, isLast, circuit) {
+            var table = document.createElement('table');
+            var caption = table.createCaption();
+            caption.innerText = circuit.description;
+            var button = document.createElement('button');
+            button.innerText = chrome.i18n.getMessage('buttonFilterOn');
+            button.addEventListener('click', osplits.tables.toggleRestricted);
+            caption.appendChild(button);
+            var thead = table.createTHead();
 
+            var th = document.createElement('th');
+            th.innerText = chrome.i18n.getMessage('labelRank');
+            th.classList.add('right');
+            thead.appendChild(th);
+
+            th = document.createElement('th');
+            th.innerText = chrome.i18n.getMessage('labelName');
+            th.classList.add('left');
+            thead.appendChild(th);
+            
+            if (osplits.parser.HEADLINE.category) { 
+                th = document.createElement('th');
+                th.innerText = chrome.i18n.getMessage('labelCategory');
+                th.classList.add('left');
+                thead.appendChild(th);
+            }
+            tx.executeSql('select * from time where circuitId = ? group by numInCircuit;', [circuit.id], function(tx, ctrlResult) {
+                if (circuit.ctrlCount + 1 !== ctrlResult.rows.length) {
+                    console.error("Control count mismatch!");
+                }
+                for (var j = 0; j < ctrlResult.rows.length; j++) {
+                    var ctrl = ctrlResult.rows.item(j);
                     th = document.createElement('th');
-                    th.innerText = chrome.i18n.getMessage('labelRank');
+                    th.innerHTML = ctrl.numInCircuit + '&nbsp;<span class="ctrlid">' + ctrl.toCtrl + '</span>';
                     th.classList.add('right');
                     thead.appendChild(th);
+                }
 
-                    th = document.createElement('th');
-                    th.innerText = chrome.i18n.getMessage('labelName');
-                    th.classList.add('left');
-                    thead.appendChild(th);
-                    
-                    if (osplits.parser.HEADLINE.category) { 
-                        th = document.createElement('th');
-                        th.innerText = chrome.i18n.getMessage('labelCategory');
-                        th.classList.add('left');
-                        thead.appendChild(th);
+                tx.executeSql('select r.rank, r.name, r.club, r.category, t.numInCircuit, t.legSec, t.cumSec from time as t, runner as r where t.circuitId = ? and t.runnerId = r.id order by r.rank, t.numInCircuit;', [circuit.id], function(tx, timeResults) {
+                    var timeResultsCount = timeResults.rows.length;
+                    var ctrlCount = circuit.ctrlCount + 1;
+                    for (var k=0; k < timeResultsCount; k += ctrlCount) {
+                        var line = timeResults.rows.item(k);
+                        var runner = {
+                            rank: line.rank,      
+                            name: line.name,      
+                            club: line.club,      
+                            category: line.category,
+                            ctrlNum: [],
+                            legSec: [],
+                            cumSec: []
+                        };
+                        for(var kk=0; kk < ctrlCount; kk++) {
+                            runner.ctrlNum[kk] = timeResults.rows.item(k+kk).numInCircuit;
+                            runner.legSec[kk] = timeResults.rows.item(k+kk).legSec;
+                            runner.cumSec[kk] = timeResults.rows.item(k+kk).cumSec;
+                        }
+                        var isRunnerLast = isLast && k === timeResultsCount - ctrlCount;
+                        osplits.tables.generateOneRunner(tx, isRunnerLast, table, runner);
                     }
-                    for ( var j = 0; j < c.controls.length; j++) {
-                        th = document.createElement('th');
-                        th.innerHTML = c.controls[j].n + '&nbsp;<span class="ctrlid">' + c.controls[j].id + '</span>';
-                        th.classList.add('right');
-                        thead.appendChild(th);
+                });
+            });
+            osplits.parser.OURDIV.appendChild(table);
+		},
+		generateOneRunner: function(tx, isRunnerLast, table, runner) {
+            var tbody, th, tr, td = undefined;
+            tbody = table.createTBody();
+            tbody.addEventListener('click', osplits.tables.onRunnerClicked);
+            tr = document.createElement('tr');
+            tbody.appendChild(tr);
+
+            th = document.createElement('th');
+            th.innerText = runner.rank;
+            th.classList.add('right');
+            tr.appendChild(th);
+
+            th = document.createElement('th');
+            th.innerText = runner.name;
+            th.classList.add('left');
+            tr.appendChild(th);
+
+            if (osplits.parser.HEADLINE.category) { 
+                th = document.createElement('th');
+                th.innerText = runner.category;
+                th.classList.add('left');
+                tr.appendChild(th);
+            }
+            // leg
+            for ( var t = 0; t < runner.legSec.length; t++) {
+                td = document.createElement('td');
+                td.innerText = osplits.util.sec2str(runner.legSec[t]);
+                td.classList.add('right');
+                td.title = runner.name + " @ " + runner.ctrlNum[t];
+                tr.appendChild(td);
+            }
+            if (runner.legSec.length) {
+                td.classList.add('last');
+            }
+            // cumulated
+            tr = document.createElement('tr');
+            tbody.appendChild(tr);
+            // place holder for rank
+            th = document.createElement('th');
+            tr.appendChild(th);
+            th = document.createElement('th');
+            th.innerText = runner.club;
+            th.classList.add('club');
+            th.classList.add('left');
+            tr.appendChild(th);
+            // place holder for category
+            if (osplits.parser.HEADLINE.category) { 
+                th = document.createElement('th');
+                tr.appendChild(th);
+            }
+            for ( var t = 0; t < runner.cumSec.length; t++) {
+                td = document.createElement('td');
+                td.innerText = osplits.util.sec2str(runner.cumSec[t]);
+                td.classList.add('right');
+                td.title = runner.name + " @ " +  runner.ctrlNum[t];
+                tr.appendChild(td);
+            }
+            if (runner.cumSec.length) {
+                td.classList.add('last');
+            }
+            if (isRunnerLast){
+                osplits.tables.onCompleted();
+            }
+		},
+		generateTables : function() {
+            osplits.parser.OURDIV = document.createElement('div');
+            osplits.parser.OURDIV.id = 'osplits';
+            
+            osplits.webdb.db.readTransaction(function(tx){
+                tx.executeSql('SELECT * from circuit ORDER BY number;', [], function(tx, result){
+                    for(var i = 0; i < result.rows.length; i++) {
+                        var circuit = result.rows.item(i);
+                        var isLast = i === result.rows.length - 1;
+                        osplits.tables.generateOneCircuit(tx, isLast, circuit);
                     }
-                    for ( var r = 0; r < c.runners.length; r++) {
-                        var runner = c.runners[r];
-                        tbody = table.createTBody();
-                        tbody.addEventListener('click', osplits.tables.onRunnerClicked);
-                        tr = document.createElement('tr');
-                        tbody.appendChild(tr);
-
-                        th = document.createElement('th');
-                        th.innerText = r + 1;
-                        th.classList.add('right');
-                        tr.appendChild(th);
-
-                        th = document.createElement('th');
-                        th.innerText = runner.name;
-                        th.classList.add('left');
-                        tr.appendChild(th);
-
-                        if (osplits.parser.HEADLINE.category) { 
-                            th = document.createElement('th');
-                            th.innerText = runner.category;
-                            th.classList.add('left');
-                            tr.appendChild(th);
-                        }
-                        // leg
-                        for ( var t = 0; t < c.controls.length; t++) {
-                            td = document.createElement('td');
-                            td.innerText = runner.legTimes[t] || '-----';
-                            td.classList.add('right');
-                            td.title = runner.name + " @ " + c.controls[t].n;
-                            tr.appendChild(td);
-                        }
-                        if (c.controls.length) {
-                            td.classList.add('last');
-                        }
-                        // cumulated
-                        tr = document.createElement('tr');
-                        tbody.appendChild(tr);
-                        // place holder for rank
-                        th = document.createElement('th');
-                        tr.appendChild(th);
-                        th = document.createElement('th');
-                        th.innerText = runner.club;
-                        th.classList.add('club');
-                        th.classList.add('left');
-                        tr.appendChild(th);
-                        // place holder for category
-                        if (osplits.parser.HEADLINE.category) { 
-                            th = document.createElement('th');
-                            tr.appendChild(th);
-                        }
-                        for ( var t = 0; t < c.controls.length; t++) {
-                            td = document.createElement('td');
-                            td.innerText = runner.cumTimes[t] || '-----';
-                            td.classList.add('right');
-                            td.title = runner.name + " @ " + c.controls[t].n;
-                            tr.appendChild(td);
-                        }
-                        if (c.controls.length) {
-                            td.classList.add('last');
-                        }
-                    }
-                    osplits.parser.OURDIV.appendChild(table);
-                }			    
-			}
+                });
+            });
+		}
 	};
 	window.osplits = osplits;
 	chrome.runtime.onMessage.addListener(function(msg) {
