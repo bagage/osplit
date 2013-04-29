@@ -166,9 +166,10 @@ else {
 			osplits.parser.dropNonCircuit(lines);
 			while (lines.length > 0) {
 				var circuit = osplits.parser.getOneCircuit(lines);
-				allCircuits.push(circuit);
-				osplits.webdb.storeCircuitTxn(allCircuits.length, circuit);
-				osplits.parser.dropNonCircuit(lines);
+				if (circuit){
+    				allCircuits.push(circuit);
+    				osplits.webdb.storeCircuitTxn(allCircuits.length, circuit);
+				}
 			}
 			return allCircuits;
 		},
@@ -206,6 +207,11 @@ else {
 					n : controlNumber,
 					id : controlId
 				});
+			}
+			if (circuit.controls.length === 0){
+			    console.log('Not a split times circuit: ' + circuit.description);
+			    osplits.parser.dropNonCircuit(lines);
+			    return undefined;
 			}
 			circuit.controls.push({
 				n : 'A',
