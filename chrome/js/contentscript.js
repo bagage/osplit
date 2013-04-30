@@ -109,7 +109,6 @@ else {
 	osplits.webdb.open();
 	osplits.webdb.createTables();
 	osplits.parser = {
-		CIRCUITS : undefined,
 		PARENT : undefined,
 		OURDIV : undefined,
 		BACKUP : undefined,
@@ -135,7 +134,7 @@ else {
 			var fullText = osplits.parser.BACKUP.innerText;
 			var lines = fullText.split(/\n/);
 			var head = lines.shift();
-			var allCircuits = [];
+			var found = 0;
 			var extractLeftAligned = function(tt){
                 var from = head.indexOf(tt);
                 if (from === -1){
@@ -163,15 +162,15 @@ else {
 			osplits.parser.HEADLINE.time = extractRightAligned(osplits.parser.LANG.time, '3:59:59'.length);
 			osplits.parser.HEADLINE.data = new osplits.parser.Extractor(osplits.parser.HEADLINE.time.to + 1);
 
-			osplits.parser.dropNonCircuit(lines);
 			while (lines.length > 0) {
+			    osplits.parser.dropNonCircuit(lines);
 				var circuit = osplits.parser.getOneCircuit(lines);
 				if (circuit){
-    				allCircuits.push(circuit);
-    				osplits.webdb.storeCircuitTxn(allCircuits.length, circuit);
+				    found++;
+    				osplits.webdb.storeCircuitTxn(found, circuit);
 				}
 			}
-			return allCircuits;
+			return found;
 		},
 
 		dropNonCircuit : function(lines) {
@@ -467,9 +466,9 @@ else {
 	chrome.runtime.onMessage.addListener(function(msg) {
 		switch (msg.cmd) {
 		case 'parse':
-			osplits.parser.CIRCUITS = osplits.parser.parseDocument();
-			console.log("O'Splits: Parsing document found " + osplits.parser.CIRCUITS.length + " circuits");
-		    chrome.extension.sendMessage({cmd:'parseok', count:osplits.parser.CIRCUITS.length });
+			var found = osplits.parser.parseDocument();
+			console.log("O'Splits: Parsing document found " + found + " circuits");
+		    chrome.extension.sendMessage({cmd:'parseok', count:found });
 			break;
 		case 'showtables':
 			osplits.tables.toggleDisplay();
