@@ -1,8 +1,10 @@
 {
     "buttonFilterOn": {"message": "View only selected"},
     "buttonFilterOff": {"message": "Remove filter"},
-	"extensionDesc": { "message": "View OE orienteering results like you never did before!" },
-	"extensionFullName": { "message": "O'Splits" },
+    "buttonBestLeg": {"message": "Best leg times"},
+    "buttonBestCum": {"message": "Best cumulated times"},
+    "extensionDesc": { "message": "View OE orienteering results like you never did before!" },
+    "extensionFullName": { "message": "O'Splits" },
     "labelCategory": { "message": "Cat." },
     "labelName": { "message": "Name" },
     "labelRank": { "message": "#" }

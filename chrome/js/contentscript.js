@@ -304,6 +304,32 @@ else {
 				});
 			}
 		},
+		_highlightBest: function(table, rowId, query){
+            var cicuitId = table.dataset['circuitId'];
+            $(table).find('.highlighted').removeClass('highlighted');
+		    osplits.webdb.db.readTransaction(function(tx){
+		        tx.executeSql(query, [cicuitId, cicuitId], function(tx, result){
+		            var count = result.rows.length;
+		            for(var i = 0; i < count; i++) {
+		                var best = result.rows.item(i);
+		                var jq = 'tbody[data-runner-id="' + best.id + '"] tr[data-time="' + rowId + '"] td[data-ctrl-num="' + best.numInCircuit + '"]';
+		                $(table).find(jq).addClass('highlighted');
+		            }
+		        });
+		    });
+        },
+        highlightBestLeg: function(event) {
+            var button = this;
+            var table = button.parentElement.parentElement;
+            var query = 'SELECT r.id, t1.numInCircuit FROM time AS t1, runner AS r WHERE t1.circuitId = ? AND t1.runnerId = r.id AND t1.legSec = (SELECT min( t2.legSec ) FROM time t2 WHERE t2.numInCircuit = t1.numInCircuit AND t2.circuitId = ? GROUP BY t2.numInCircuit) order by t1.numInCircuit;';
+            osplits.tables._highlightBest(table, 'leg', query);
+		},
+		highlightBestCum: function(event) {
+            var button = this;
+            var table = button.parentElement.parentElement;
+            var query = 'SELECT r.id, t1.numInCircuit FROM time AS t1, runner AS r WHERE t1.circuitId = ? AND t1.runnerId = r.id AND t1.cumSec = (SELECT min( t2.cumSec ) FROM time t2 WHERE t2.numInCircuit = t1.numInCircuit AND t2.circuitId = ? GROUP BY t2.numInCircuit) order by t1.numInCircuit;';
+            osplits.tables._highlightBest(table, 'cum', query);
+        },
 		toggleDisplay : function() {
 			if (osplits.parser.OURDIV) {
 				console.log("O'Splits: reverting to original");
@@ -322,11 +348,24 @@ else {
 		generateOneCircuit : function(tx, isLast, circuit) {
             var table = document.createElement('table');
             var caption = table.createCaption();
+            table.dataset['circuitId'] = circuit.id;
             caption.innerText = circuit.description;
             var button = document.createElement('button');
             button.innerText = chrome.i18n.getMessage('buttonFilterOn');
             button.addEventListener('click', osplits.tables.toggleRestricted);
             caption.appendChild(button);
+            
+            button = document.createElement('button');
+            button.innerText = chrome.i18n.getMessage('buttonBestLeg');
+            button.addEventListener('click', osplits.tables.highlightBestLeg);
+            caption.appendChild(button);
+
+            button = document.createElement('button');
+            button.innerText = chrome.i18n.getMessage('buttonBestCum');
+            button.addEventListener('click', osplits.tables.highlightBestCum);
+            caption.appendChild(button);
+
+            
             var thead = table.createTHead();
 
             var th = document.createElement('th');
@@ -357,12 +396,13 @@ else {
                     thead.appendChild(th);
                 }
 
-                tx.executeSql('select r.rank, r.name, r.club, r.category, t.numInCircuit, t.legSec, t.cumSec from time as t, runner as r where t.circuitId = ? and t.runnerId = r.id order by r.rank, t.numInCircuit;', [circuit.id], function(tx, timeResults) {
+                tx.executeSql('select r.id, r.rank, r.name, r.club, r.category, t.numInCircuit, t.legSec, t.cumSec from time as t, runner as r where t.circuitId = ? and t.runnerId = r.id order by r.rank, t.numInCircuit;', [circuit.id], function(tx, timeResults) {
                     var timeResultsCount = timeResults.rows.length;
                     var ctrlCount = circuit.ctrlCount + 1;
                     for (var k=0; k < timeResultsCount; k += ctrlCount) {
                         var line = timeResults.rows.item(k);
                         var runner = {
+                            id: line.id,
                             rank: line.rank,      
                             name: line.name,      
                             club: line.club,      
@@ -386,8 +426,10 @@ else {
 		generateOneRunner: function(tx, isRunnerLast, table, runner) {
             var tbody, th, tr, td = undefined;
             tbody = table.createTBody();
+            tbody.dataset['runnerId'] = runner.id;
             tbody.addEventListener('click', osplits.tables.onRunnerClicked);
             tr = document.createElement('tr');
+            tr.dataset['time'] = 'leg';
             tbody.appendChild(tr);
 
             th = document.createElement('th');
@@ -409,6 +451,7 @@ else {
             // leg
             for ( var t = 0; t < runner.legSec.length; t++) {
                 td = document.createElement('td');
+                td.dataset['ctrlNum'] = runner.ctrlNum[t];
                 td.innerText = osplits.util.sec2str(runner.legSec[t]);
                 td.classList.add('right');
                 td.title = runner.name + " @ " + runner.ctrlNum[t];
@@ -419,6 +462,7 @@ else {
             }
             // cumulated
             tr = document.createElement('tr');
+            tr.dataset['time'] = 'cum';
             tbody.appendChild(tr);
             // place holder for rank
             th = document.createElement('th');
@@ -435,6 +479,7 @@ else {
             }
             for ( var t = 0; t < runner.cumSec.length; t++) {
                 td = document.createElement('td');
+                td.dataset['ctrlNum'] = runner.ctrlNum[t];
                 td.innerText = osplits.util.sec2str(runner.cumSec[t]);
                 td.classList.add('right');
                 td.title = runner.name + " @ " +  runner.ctrlNum[t];

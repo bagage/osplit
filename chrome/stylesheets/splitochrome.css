@@ -42,8 +42,9 @@
 	color: #4E4E4E;
 }
 
-#osplits .best {
+#osplits .highlighted {
 	color: #0000FF;
+	font-weight: bold;
 }
 
 #osplits .left {
