@@ -52,7 +52,14 @@
     text-align: left;
     padding-left: 0.7em;
 }
-
+#osplits .container{
+    position: relative;	
+}
+#osplits .graph {
+    position: absolute;
+    left:260px;
+    top: 60px;
+}
 #osplits .right, #osplits td {
     text-align: right;
     padding-right: 0.7em;

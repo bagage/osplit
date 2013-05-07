@@ -346,7 +346,10 @@ else {
 		    osplits.parser.PARENT.appendChild(osplits.parser.OURDIV);
 		},
 		generateOneCircuit : function(tx, isLast, circuit) {
-            var table = document.createElement('table');
+            var container = document.createElement('div');
+            container.classList.add('container');
+		    var table = document.createElement('table');
+		    container.appendChild(table);
             var caption = table.createCaption();
             table.dataset['circuitId'] = circuit.id;
             caption.innerText = circuit.description;
@@ -363,6 +366,11 @@ else {
             button = document.createElement('button');
             button.innerText = chrome.i18n.getMessage('buttonBestCum');
             button.addEventListener('click', osplits.tables.highlightBestCum);
+            caption.appendChild(button);
+
+            button = document.createElement('button');
+            button.innerText = 'Show Graph';
+            button.addEventListener('click', osplits.graph.toggleGraph);
             caption.appendChild(button);
 
             
@@ -421,7 +429,7 @@ else {
                     }
                 });
             });
-            osplits.parser.OURDIV.appendChild(table);
+            osplits.parser.OURDIV.appendChild(container);
 		},
 		generateOneRunner: function(tx, isRunnerLast, table, runner) {
             var tbody, th, tr, td = undefined;
@@ -507,6 +515,96 @@ else {
             });
 		}
 	};
+	osplits.graph = {
+        graphCanvas: null,
+        toggleGraph: function(event) {
+            var button = this;
+            var table = button.parentElement.parentElement;
+            if (!table.classList.contains('graphMode')) {
+                var circuitId = parseInt(table.dataset.circuitId);
+                var canvas = document.createElement('canvas');
+                canvas.width = 1000;
+                canvas.classList.add('graph');
+                canvas.height = 500;
+                var ctx = canvas.getContext('2d');
+                $(table).find('td').hide();
+                table.classList.add('graphMode');
+                table.parentElement.appendChild(canvas);
+                button.innerText = 'Hide Graph';
+                osplits.graph.buildGraph(circuitId, ctx, table);
+                table.parentElement.appendChild(canvas);
+                osplits.graph.graphCanvas = canvas;
+            }
+            else {
+                $(table).find('td').show();
+                table.classList.remove('graphMode');
+                button.innerText = 'Show Graph';
+                table.parentElement.removeChild(osplits.graph.graphCanvas);
+                osplits.graph.graphCanvas = null;
+            }
+        },
+        buildGraph: function(circuitId, ctx, table) {
+            osplits.webdb.db.readTransaction(function(tx){
+                tx.executeSql('SELECT min( t.legSec ) AS best, max( t.legSec ) as worst FROM time t WHERE t.circuitId = ? GROUP BY t.numInCircuit ORDER BY t.numInCircuit;', [circuitId], function(tx, result){
+                    var bestTotal = 0, worstTotal = 0;
+                    var bestCumSec = [];
+                    var xAxis = [];
+                    var previous = 0;
+                    for(var i = 0; i < result.rows.length; i++) {
+                        var t = result.rows.item(i);
+                        bestTotal += t.best;
+                        bestCumSec.push(bestTotal);
+                        worstTotal += t.worst;
+                    }
+                    var seconds2x = function(s) {
+                        return parseInt(s * 1000 / bestTotal);
+                    };
+                    var seconds2y = function(s) {
+                        return parseInt(s * 500/ (worstTotal-bestTotal));
+                    };
+                    for(var i = 0; i < result.rows.length; i++) {
+                        var t = result.rows.item(i);
+                        var w = seconds2x(t.best);
+                        var h = 500;
+                        ctx.fillStyle = i % 2 ? '#F1F1F1' : '#C7C7C7';
+                        ctx.fillRect(previous, 0, w, h);
+                        previous += w;
+                        xAxis.push(previous);
+                    }
+                    $(table).find('tbody').click(function(e){
+                        var runnerId = this.dataset['runnerId'];
+                        osplits.webdb.db.readTransaction(function(tx){
+                            tx.executeSql('SELECT t.cumSec FROM time t WHERE t.circuitId = ? and t.runnerId = ? ORDER BY t.numInCircuit;', [circuitId, runnerId], function(tx, result){
+                                ctx.strokeStyle = '#FFC984';
+                                ctx.lineWidth = 2;
+                                ctx.beginPath();
+                                ctx.moveTo(0,0);
+                                for(var j = 0; j < result.rows.length; j++) {
+                                    var cumSec = result.rows.item(j).cumSec;
+                                    var delta = cumSec - bestCumSec[j];
+                                    var x = xAxis[j];
+                                    var y = seconds2y(delta);
+                                    ctx.lineTo(x, y);
+                                }
+                                ctx.stroke();
+                            });
+                        });
+                    });
+                });
+            });
+            
+//            ctx.fillStyle = 'red';
+//            ctx.beginPath();
+//            ctx.moveTo(0, 0);
+//            ctx.lineTo(100, 200);
+//            ctx.lineTo(200, 400);
+//            ctx.lineTo(400, 500);
+//            ctx.closePath();
+//            ctx.stroke();
+            
+        }
+    };
+
 	window.osplits = osplits;
 	chrome.runtime.onMessage.addListener(function(msg) {
 		switch (msg.cmd) {

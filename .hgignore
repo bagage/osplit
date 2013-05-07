@@ -1,3 +1,4 @@
 syntax: glob
 .settings
 chrome.zip
+.externalToolBuilders
