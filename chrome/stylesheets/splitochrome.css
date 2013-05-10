@@ -55,7 +55,7 @@
 #osplits .container{
     position: relative;	
 }
-#osplits .graph {
+#osplits canvas {
     position: absolute;
     left:260px;
     top: 60px;

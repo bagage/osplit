@@ -516,92 +516,131 @@ else {
 		}
 	};
 	osplits.graph = {
-        graphCanvas: null,
+        width : 1000,
+        height : 500,
+
+        createGraphObject : function(table) {
+            var circuitId = parseInt(table.dataset.circuitId);
+            var bestTotal = 0, worstTotal = 0;
+            var bestCumSec = [];
+            var xAxis = [];
+            var runnerCanvas = {};
+
+            var backgroundCanvas = document.createElement('canvas');
+            backgroundCanvas.width = osplits.graph.width;
+            backgroundCanvas.height = osplits.graph.height;
+            var ctx = backgroundCanvas.getContext('2d');
+            var seconds2x = function(s) {
+                return parseInt(s * 1000 / bestTotal);
+            };
+            var seconds2y = function(s) {
+                return parseInt(s * 500 / (worstTotal - bestTotal));
+            };
+            osplits.webdb.db.readTransaction(function(tx) {
+                tx.executeSql('SELECT min( t.legSec ) AS best, max( t.legSec ) as worst FROM time t WHERE t.circuitId = ? GROUP BY t.numInCircuit ORDER BY t.numInCircuit;',
+                                [ circuitId ],
+                                function(tx, result) {
+                                    var previous = 0;
+                                    for ( var i = 0; i < result.rows.length; i++) {
+                                        var t = result.rows.item(i);
+                                        bestTotal += t.best;
+                                        bestCumSec.push(bestTotal);
+                                        worstTotal += t.worst;
+                                    }
+                                    for ( var i = 0; i < result.rows.length; i++) {
+                                        var t = result.rows.item(i);
+                                        var w = seconds2x(t.best);
+                                        var h = 500;
+                                        ctx.fillStyle = i % 2 ? '#F1F1F1' : '#C7C7C7';
+                                        ctx.fillRect(previous, 0, w, h);
+                                        previous += w;
+                                        xAxis.push(previous);
+                                    }
+                                });
+                    });
+
+            var buildRunnerCanvas = function(runnerId) {
+                osplits.webdb.db.readTransaction(function(tx) {
+                    tx.executeSql('SELECT t.cumSec FROM time t WHERE t.circuitId = ? and t.runnerId = ? ORDER BY t.numInCircuit;', [ circuitId, runnerId ], function(tx, result) {
+                        var c = document.createElement('canvas');
+                        runnerCanvas[runnerId] = {canvas: c, shown:true};
+                        c.width = osplits.graph.width;
+                        c.height = osplits.graph.height;
+                        var ctx = c.getContext('2d');
+                        
+                        ctx.strokeStyle = '#FFC984';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.moveTo(0, 0);
+                        for (var j = 0; j < result.rows.length; j++) {
+                            var cumSec = result.rows.item(j).cumSec;
+                            var delta = cumSec - bestCumSec[j];
+                            var x = xAxis[j];
+                            var y = seconds2y(delta);
+                            ctx.lineTo(x, y);
+                        }
+                        ctx.stroke();
+                        table.parentElement.appendChild(c);
+                    });
+                });
+            };
+
+            return {
+                hideRunner: function(runnerId){
+                    var c = runnerCanvas[runnerId];
+                    if (!c ) {
+                        buildRunnerCanvas(runnerId);
+                    }
+                    else if (c.shown){
+                        table.parentElement.removeChild(c);
+                        c.shown = false;
+                    } 
+                },
+                showRunner: function(runnerId){
+                    var c = runnerCanvas[runnerId];
+                    if (!c) {
+                        buildRunnerCanvas(runnerId);
+                    }
+                    else if (!c.shown) {
+                        table.parentElement.appendChild(c);
+                        c.shown = true;
+                    }
+                },
+                hide : function() {
+                    table.parentElement.removeChild(backgroundCanvas);
+                },
+                show : function() {
+                    table.parentElement.appendChild(backgroundCanvas);
+                }
+            };
+        },
         toggleGraph: function(event) {
             var button = this;
+            var graphObj = null;
             var table = button.parentElement.parentElement;
+            
             if (!table.classList.contains('graphMode')) {
-                var circuitId = parseInt(table.dataset.circuitId);
-                var canvas = document.createElement('canvas');
-                canvas.width = 1000;
-                canvas.classList.add('graph');
-                canvas.height = 500;
-                var ctx = canvas.getContext('2d');
+                graphObj = osplits.graph.createGraphObject(table);
                 $(table).find('td').hide();
                 table.classList.add('graphMode');
-                table.parentElement.appendChild(canvas);
+                graphObj.show();
                 button.innerText = 'Hide Graph';
-                osplits.graph.buildGraph(circuitId, ctx, table);
-                table.parentElement.appendChild(canvas);
-                osplits.graph.graphCanvas = canvas;
+                $(table).find('tbody').click(function(e) {
+                    var runnerId = this.dataset['runnerId'];
+                    if (this.classList.contains('selected')) {
+                        graphObj.showRunner(runnerId);
+                    }
+                    else {
+                        graphObj.hideRunner(runnerId);
+                    }
+                });
             }
             else {
                 $(table).find('td').show();
                 table.classList.remove('graphMode');
                 button.innerText = 'Show Graph';
-                table.parentElement.removeChild(osplits.graph.graphCanvas);
-                osplits.graph.graphCanvas = null;
+                graphObj.hide();
             }
-        },
-        buildGraph: function(circuitId, ctx, table) {
-            osplits.webdb.db.readTransaction(function(tx){
-                tx.executeSql('SELECT min( t.legSec ) AS best, max( t.legSec ) as worst FROM time t WHERE t.circuitId = ? GROUP BY t.numInCircuit ORDER BY t.numInCircuit;', [circuitId], function(tx, result){
-                    var bestTotal = 0, worstTotal = 0;
-                    var bestCumSec = [];
-                    var xAxis = [];
-                    var previous = 0;
-                    for(var i = 0; i < result.rows.length; i++) {
-                        var t = result.rows.item(i);
-                        bestTotal += t.best;
-                        bestCumSec.push(bestTotal);
-                        worstTotal += t.worst;
-                    }
-                    var seconds2x = function(s) {
-                        return parseInt(s * 1000 / bestTotal);
-                    };
-                    var seconds2y = function(s) {
-                        return parseInt(s * 500/ (worstTotal-bestTotal));
-                    };
-                    for(var i = 0; i < result.rows.length; i++) {
-                        var t = result.rows.item(i);
-                        var w = seconds2x(t.best);
-                        var h = 500;
-                        ctx.fillStyle = i % 2 ? '#F1F1F1' : '#C7C7C7';
-                        ctx.fillRect(previous, 0, w, h);
-                        previous += w;
-                        xAxis.push(previous);
-                    }
-                    $(table).find('tbody').click(function(e){
-                        var runnerId = this.dataset['runnerId'];
-                        osplits.webdb.db.readTransaction(function(tx){
-                            tx.executeSql('SELECT t.cumSec FROM time t WHERE t.circuitId = ? and t.runnerId = ? ORDER BY t.numInCircuit;', [circuitId, runnerId], function(tx, result){
-                                ctx.strokeStyle = '#FFC984';
-                                ctx.lineWidth = 2;
-                                ctx.beginPath();
-                                ctx.moveTo(0,0);
-                                for(var j = 0; j < result.rows.length; j++) {
-                                    var cumSec = result.rows.item(j).cumSec;
-                                    var delta = cumSec - bestCumSec[j];
-                                    var x = xAxis[j];
-                                    var y = seconds2y(delta);
-                                    ctx.lineTo(x, y);
-                                }
-                                ctx.stroke();
-                            });
-                        });
-                    });
-                });
-            });
-            
-//            ctx.fillStyle = 'red';
-//            ctx.beginPath();
-//            ctx.moveTo(0, 0);
-//            ctx.lineTo(100, 200);
-//            ctx.lineTo(200, 400);
-//            ctx.lineTo(400, 500);
-//            ctx.closePath();
-//            ctx.stroke();
-            
         }
     };
 
