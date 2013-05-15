@@ -404,7 +404,7 @@ else {
                     thead.appendChild(th);
                 }
 
-                tx.executeSql('select r.id, r.rank, r.name, r.club, r.category, t.numInCircuit, t.legSec, t.cumSec from time as t, runner as r where t.circuitId = ? and t.runnerId = r.id order by r.rank, t.numInCircuit;', [circuit.id], function(tx, timeResults) {
+                tx.executeSql('select r.id, r.rank, r.name, r.club, r.category, t.numInCircuit, t.legSec, t.cumSec from time as t, runner as r where t.circuitId = ? and t.runnerId = r.id order by r.rank, r.id, t.numInCircuit;', [circuit.id], function(tx, timeResults) {
                     var timeResultsCount = timeResults.rows.length;
                     var ctrlCount = circuit.ctrlCount + 1;
                     for (var k=0; k < timeResultsCount; k += ctrlCount) {
