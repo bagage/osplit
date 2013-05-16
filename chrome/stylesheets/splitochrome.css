@@ -60,7 +60,14 @@
 #osplits .graphMode {
     min-height: 560px;
 }
-#osplits th, #osplits thead td {
+#osplits .graphMode .scrollable {
+    max-height: 560px;
+    overflow-y: auto;
+}
+#osplits .graphMode table {
+    font-size: xx-small;
+}
+#osplits th, #osplits thead td, #osplits, .graphMode td.total {
     font-weight: bold;
     white-space: nowrap;
     color: #4E4E4E;
@@ -71,6 +78,9 @@
 }
 #osplits td.last {
     padding-right: 0;
+}
+#osplits .graphMode td.last:not(.total) {
+    color: rgba(0,0,0,0);
 }
 #osplits .ctrlid {
 	font-size: 9px;

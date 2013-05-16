@@ -290,7 +290,7 @@ else {
 		},
 		toggleRestricted: function(event) {
 		    var button = this;
-            var table = $(button).parent().next().get(0);
+            var table = $(button).parent().parent().find('table').get(0);
 			if (table.classList.contains('restricted')) {
 			    $(table).find('tbody').show('fast', function(){
 			        table.classList.remove('restricted');
@@ -320,13 +320,13 @@ else {
         },
         highlightBestLeg: function(event) {
             var button = this;
-            var table = $(button).parent().next().get(0);
+            var table = $(button).parent().parent().find('table').get(0);
             var query = 'SELECT r.id, t1.numInCircuit FROM time AS t1, runner AS r WHERE t1.circuitId = ? AND t1.runnerId = r.id AND t1.legSec = (SELECT min( t2.legSec ) FROM time t2 WHERE t2.numInCircuit = t1.numInCircuit AND t2.circuitId = ? GROUP BY t2.numInCircuit) order by t1.numInCircuit;';
             osplits.tables._highlightBest(table, 'leg', query);
 		},
 		highlightBestCum: function(event) {
             var button = this;
-            var table = $(button).parent().next().get(0);
+            var table = $(button).parent().parent().find('table').get(0);
             var query = 'SELECT r.id, t1.numInCircuit FROM time AS t1, runner AS r WHERE t1.circuitId = ? AND t1.runnerId = r.id AND t1.cumSec = (SELECT min( t2.cumSec ) FROM time t2 WHERE t2.numInCircuit = t1.numInCircuit AND t2.circuitId = ? GROUP BY t2.numInCircuit) order by t1.numInCircuit;';
             osplits.tables._highlightBest(table, 'cum', query);
         },
@@ -373,8 +373,12 @@ else {
             button.addEventListener('click', osplits.graph.toggleGraph);
             caption.appendChild(button);
 
+            var scrollable = document.createElement('div');
+            container.appendChild(scrollable);
+            scrollable.classList.add('scrollable');
+            
 		    var table = document.createElement('table');
-		    container.appendChild(table);
+		    scrollable.appendChild(table);
             table.dataset['circuitId'] = circuit.id;
 
             var thead = table.createTHead();
@@ -498,6 +502,7 @@ else {
             }
             if (runner.cumSec.length) {
                 td.classList.add('last');
+                td.classList.add('total');
             }
             if (isRunnerLast){
                 osplits.tables.onCompleted();
@@ -621,7 +626,7 @@ else {
         },
         toggleGraph: function(event) {
             var button = this;
-            var table = $(button).parent().next().get(0);
+            var table = $(button).parent().parent().find('table').get(0);
             var circuitId = parseInt(table.dataset.circuitId);
             var container = button.parentElement.parentElement;
             
@@ -647,8 +652,11 @@ else {
                 container.classList.add('graphMode');
                 graphObj.show();
                 button.innerText = 'Hide Graph';
-                $(table).find('td').hide();
-
+                $(table).find('td').not('.last').hide();
+                $(container).find('.scrollable').width(function(i, elem){
+                    var totalElem = $(table).find('.total').get(0);
+                    return totalElem.offsetLeft + totalElem.offsetWidth + 18; // +scrollbar
+                });
             }
             else {
                 $(table).find('td').show();
