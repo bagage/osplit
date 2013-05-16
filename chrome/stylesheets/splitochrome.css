@@ -1,9 +1,12 @@
+#osplits h1 {
+	font-size: 1.5em;
+	margin: 1em 0 0.5em 1em;
+}
 #osplits table {
 	background: white;
 	border: none;
 	border-collapse: collapse;
 	font: normal 11px verdana, arial, helvetica, sans-serif;
-	margin-top: 3em;
 	overflow-x: scroll; 
 }
 
@@ -37,12 +40,6 @@
     white-space: nowrap;
 }
 
-#osplits th {
-    font-weight: bold;
- 	white-space: nowrap;
-	color: #4E4E4E;
-}
-
 #osplits .highlighted {
 	color: #0000FF;
 	font-weight: bold;
@@ -59,6 +56,14 @@
     position: absolute;
     left:260px;
     top: 60px;
+}
+#osplits .graphMode {
+    min-height: 560px;
+}
+#osplits th, #osplits thead td {
+    font-weight: bold;
+    white-space: nowrap;
+    color: #4E4E4E;
 }
 #osplits .right, #osplits td {
     text-align: right;

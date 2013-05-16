@@ -290,7 +290,7 @@ else {
 		},
 		toggleRestricted: function(event) {
 		    var button = this;
-			var table = button.parentElement.parentElement;
+            var table = $(button).parent().next().get(0);
 			if (table.classList.contains('restricted')) {
 			    $(table).find('tbody').show('fast', function(){
 			        table.classList.remove('restricted');
@@ -320,13 +320,13 @@ else {
         },
         highlightBestLeg: function(event) {
             var button = this;
-            var table = button.parentElement.parentElement;
+            var table = $(button).parent().next().get(0);
             var query = 'SELECT r.id, t1.numInCircuit FROM time AS t1, runner AS r WHERE t1.circuitId = ? AND t1.runnerId = r.id AND t1.legSec = (SELECT min( t2.legSec ) FROM time t2 WHERE t2.numInCircuit = t1.numInCircuit AND t2.circuitId = ? GROUP BY t2.numInCircuit) order by t1.numInCircuit;';
             osplits.tables._highlightBest(table, 'leg', query);
 		},
 		highlightBestCum: function(event) {
             var button = this;
-            var table = button.parentElement.parentElement;
+            var table = $(button).parent().next().get(0);
             var query = 'SELECT r.id, t1.numInCircuit FROM time AS t1, runner AS r WHERE t1.circuitId = ? AND t1.runnerId = r.id AND t1.cumSec = (SELECT min( t2.cumSec ) FROM time t2 WHERE t2.numInCircuit = t1.numInCircuit AND t2.circuitId = ? GROUP BY t2.numInCircuit) order by t1.numInCircuit;';
             osplits.tables._highlightBest(table, 'cum', query);
         },
@@ -348,11 +348,11 @@ else {
 		generateOneCircuit : function(tx, isLast, circuit) {
             var container = document.createElement('div');
             container.classList.add('container');
-		    var table = document.createElement('table');
-		    container.appendChild(table);
-            var caption = table.createCaption();
-            table.dataset['circuitId'] = circuit.id;
+            
+            var caption = document.createElement('h1');
+            container.appendChild(caption);
             caption.innerText = circuit.description;
+
             var button = document.createElement('button');
             button.innerText = chrome.i18n.getMessage('buttonFilterOn');
             button.addEventListener('click', osplits.tables.toggleRestricted);
@@ -373,7 +373,10 @@ else {
             button.addEventListener('click', osplits.graph.toggleGraph);
             caption.appendChild(button);
 
-            
+		    var table = document.createElement('table');
+		    container.appendChild(table);
+            table.dataset['circuitId'] = circuit.id;
+
             var thead = table.createTHead();
 
             var th = document.createElement('th');
@@ -398,7 +401,7 @@ else {
                 }
                 for (var j = 0; j < ctrlResult.rows.length; j++) {
                     var ctrl = ctrlResult.rows.item(j);
-                    th = document.createElement('th');
+                    th = document.createElement('td');
                     th.innerHTML = ctrl.numInCircuit + '&nbsp;<span class="ctrlid">' + ctrl.toCtrl + '</span>';
                     th.classList.add('right');
                     thead.appendChild(th);
@@ -518,7 +521,7 @@ else {
 	osplits.graph = {
         width : 1000,
         height : 500,
-
+        circuits : {},
         createGraphObject : function(table) {
             var circuitId = parseInt(table.dataset.circuitId);
             var bestTotal = 0, worstTotal = 0;
@@ -526,15 +529,18 @@ else {
             var xAxis = [];
             var runnerCanvas = {};
 
+            var graphLayers = document.createElement('div');
+
             var backgroundCanvas = document.createElement('canvas');
+            graphLayers.appendChild(backgroundCanvas);
             backgroundCanvas.width = osplits.graph.width;
             backgroundCanvas.height = osplits.graph.height;
             var ctx = backgroundCanvas.getContext('2d');
             var seconds2x = function(s) {
-                return parseInt(s * 1000 / bestTotal);
+                return parseInt(s * osplits.graph.width / bestTotal);
             };
             var seconds2y = function(s) {
-                return parseInt(s * 500 / (worstTotal - bestTotal));
+                return parseInt(s * osplits.graph.height / (worstTotal - bestTotal));
             };
             osplits.webdb.db.readTransaction(function(tx) {
                 tx.executeSql('SELECT min( t.legSec ) AS best, max( t.legSec ) as worst FROM time t WHERE t.circuitId = ? GROUP BY t.numInCircuit ORDER BY t.numInCircuit;',
@@ -550,7 +556,7 @@ else {
                                     for ( var i = 0; i < result.rows.length; i++) {
                                         var t = result.rows.item(i);
                                         var w = seconds2x(t.best);
-                                        var h = 500;
+                                        var h = osplits.graph.height;
                                         ctx.fillStyle = i % 2 ? '#F1F1F1' : '#C7C7C7';
                                         ctx.fillRect(previous, 0, w, h);
                                         previous += w;
@@ -559,11 +565,10 @@ else {
                                 });
                     });
 
-            var buildRunnerCanvas = function(runnerId) {
+            var buildRunnerCanvas = function(runnerId, callback) {
                 osplits.webdb.db.readTransaction(function(tx) {
                     tx.executeSql('SELECT t.cumSec FROM time t WHERE t.circuitId = ? and t.runnerId = ? ORDER BY t.numInCircuit;', [ circuitId, runnerId ], function(tx, result) {
                         var c = document.createElement('canvas');
-                        runnerCanvas[runnerId] = {canvas: c, shown:true};
                         c.width = osplits.graph.width;
                         c.height = osplits.graph.height;
                         var ctx = c.getContext('2d');
@@ -580,7 +585,7 @@ else {
                             ctx.lineTo(x, y);
                         }
                         ctx.stroke();
-                        table.parentElement.appendChild(c);
+                        callback(c);
                     });
                 });
             };
@@ -588,58 +593,68 @@ else {
             return {
                 hideRunner: function(runnerId){
                     var c = runnerCanvas[runnerId];
-                    if (!c ) {
-                        buildRunnerCanvas(runnerId);
-                    }
-                    else if (c.shown){
-                        table.parentElement.removeChild(c);
+                    if (c && c.shown) {
+                        graphLayers.removeChild(c.canvas);
                         c.shown = false;
                     } 
                 },
                 showRunner: function(runnerId){
+                    var _showCanvas = function(canvas) {
+                        runnerCanvas[runnerId] = {canvas: canvas, shown:true};
+                        graphLayers.appendChild(canvas);
+                    };
                     var c = runnerCanvas[runnerId];
                     if (!c) {
-                        buildRunnerCanvas(runnerId);
+                        buildRunnerCanvas(runnerId, _showCanvas);
                     }
                     else if (!c.shown) {
-                        table.parentElement.appendChild(c);
-                        c.shown = true;
+                        _showCanvas(c.canvas);
                     }
                 },
                 hide : function() {
-                    table.parentElement.removeChild(backgroundCanvas);
+                    table.parentElement.removeChild(graphLayers);
                 },
                 show : function() {
-                    table.parentElement.appendChild(backgroundCanvas);
+                    table.parentElement.appendChild(graphLayers);
                 }
             };
         },
         toggleGraph: function(event) {
             var button = this;
-            var graphObj = null;
-            var table = button.parentElement.parentElement;
+            var table = $(button).parent().next().get(0);
+            var circuitId = parseInt(table.dataset.circuitId);
+            var container = button.parentElement.parentElement;
             
-            if (!table.classList.contains('graphMode')) {
-                graphObj = osplits.graph.createGraphObject(table);
-                $(table).find('td').hide();
-                table.classList.add('graphMode');
+            if (!container.classList.contains('graphMode')) {
+                var graphObj = osplits.graph.circuits[circuitId];
+                if (!graphObj) {
+                    graphObj = osplits.graph.createGraphObject(table);
+                    osplits.graph.circuits[circuitId] = graphObj;
+                    $(table).find('tbody.selected').each(function(index, elem) {
+                        var runnerId = elem.dataset['runnerId'];
+                        graphObj.showRunner(runnerId);
+                    });
+                    $(table).find('tbody').click(function(e) {
+                        var runnerId = this.dataset['runnerId'];
+                        if (this.classList.contains('selected')) {
+                            graphObj.showRunner(runnerId);
+                        }
+                        else {
+                            graphObj.hideRunner(runnerId);
+                        }
+                    });
+                }
+                container.classList.add('graphMode');
                 graphObj.show();
                 button.innerText = 'Hide Graph';
-                $(table).find('tbody').click(function(e) {
-                    var runnerId = this.dataset['runnerId'];
-                    if (this.classList.contains('selected')) {
-                        graphObj.showRunner(runnerId);
-                    }
-                    else {
-                        graphObj.hideRunner(runnerId);
-                    }
-                });
+                $(table).find('td').hide();
+
             }
             else {
                 $(table).find('td').show();
-                table.classList.remove('graphMode');
+                container.classList.remove('graphMode');
                 button.innerText = 'Show Graph';
-                graphObj.hide();
+                osplits.graph.circuits[circuitId].hide();
             }
         }
     };
