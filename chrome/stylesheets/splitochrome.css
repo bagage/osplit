@@ -52,10 +52,14 @@
 #osplits .container{
     position: relative;	
 }
-#osplits canvas {
+#osplits .graph {
     position: absolute;
-    left:260px;
     top: 60px;
+}
+#osplits canvas{
+    position: absolute;
+    top: 0;
+    left: 0;
 }
 #osplits .graphMode {
     min-height: 560px;

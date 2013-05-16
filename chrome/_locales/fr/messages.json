@@ -3,6 +3,8 @@
     "buttonFilterOff": {"message": "Supprimer le filtre"},
     "buttonBestLeg": {"message": "Meilleurs temps par poste"},
     "buttonBestCum": {"message": "Meilleurs temps cumulés"},
+    "buttonShowGraph": {"message": "Voir graphique"},
+    "buttonShowTable": {"message": "Voir tableau"},
     "extensionDesc": { "message": "Visualisez les résultats d'OE comme jamais!" },
     "extensionFullName": { "message": "O'Splits" },
     "labelCategory": { "message": "Cat." },

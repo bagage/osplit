@@ -3,6 +3,8 @@
     "buttonFilterOff": {"message": "Remove filter"},
     "buttonBestLeg": {"message": "Best leg times"},
     "buttonBestCum": {"message": "Best cumulated times"},
+    "buttonShowGraph": {"message": "Show graph"},
+    "buttonShowTable": {"message": "Show table"},
     "extensionDesc": { "message": "View OE orienteering results like you never did before!" },
     "extensionFullName": { "message": "O'Splits" },
     "labelCategory": { "message": "Cat." },

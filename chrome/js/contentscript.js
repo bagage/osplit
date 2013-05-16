@@ -369,7 +369,7 @@ else {
             caption.appendChild(button);
 
             button = document.createElement('button');
-            button.innerText = 'Show Graph';
+            button.innerText = chrome.i18n.getMessage('buttonShowGraph');
             button.addEventListener('click', osplits.graph.toggleGraph);
             caption.appendChild(button);
 
@@ -527,15 +527,20 @@ else {
         width : 1000,
         height : 500,
         circuits : {},
+        getColor: function(i){
+            var r = (i*23%200 + 10).toString(16);
+            var g = (i*49%200 + 30).toString(16);
+            var b = (i*11%200 + 10).toString(16);
+            return '#' + r + g + b;
+        },
         createGraphObject : function(table) {
             var circuitId = parseInt(table.dataset.circuitId);
             var bestTotal = 0, worstTotal = 0;
             var bestCumSec = [];
             var xAxis = [];
             var runnerCanvas = {};
-
             var graphLayers = document.createElement('div');
-
+            graphLayers.classList.add('graph');
             var backgroundCanvas = document.createElement('canvas');
             graphLayers.appendChild(backgroundCanvas);
             backgroundCanvas.width = osplits.graph.width;
@@ -548,7 +553,7 @@ else {
                 return parseInt(s * osplits.graph.height / (worstTotal - bestTotal));
             };
             osplits.webdb.db.readTransaction(function(tx) {
-                tx.executeSql('SELECT min( t.legSec ) AS best, max( t.legSec ) as worst FROM time t WHERE t.circuitId = ? GROUP BY t.numInCircuit ORDER BY t.numInCircuit;',
+                tx.executeSql('SELECT min( t.legSec ) AS best, max( t.cumSec ) as worst FROM time t WHERE t.circuitId = ? GROUP BY t.numInCircuit ORDER BY t.numInCircuit;',
                                 [ circuitId ],
                                 function(tx, result) {
                                     var previous = 0;
@@ -556,13 +561,13 @@ else {
                                         var t = result.rows.item(i);
                                         bestTotal += t.best;
                                         bestCumSec.push(bestTotal);
-                                        worstTotal += t.worst;
+                                        worstTotal = t.worst;
                                     }
                                     for ( var i = 0; i < result.rows.length; i++) {
                                         var t = result.rows.item(i);
                                         var w = seconds2x(t.best);
                                         var h = osplits.graph.height;
-                                        ctx.fillStyle = i % 2 ? '#F1F1F1' : '#C7C7C7';
+                                        ctx.fillStyle = i % 2 ? '#F1F1F1' : '#D7D7D7';
                                         ctx.fillRect(previous, 0, w, h);
                                         previous += w;
                                         xAxis.push(previous);
@@ -578,7 +583,7 @@ else {
                         c.height = osplits.graph.height;
                         var ctx = c.getContext('2d');
                         
-                        ctx.strokeStyle = '#FFC984';
+                        ctx.strokeStyle = osplits.graph.getColor(runnerId);//'#FFC984';
                         ctx.lineWidth = 2;
                         ctx.beginPath();
                         ctx.moveTo(0, 0);
@@ -651,17 +656,19 @@ else {
                 }
                 container.classList.add('graphMode');
                 graphObj.show();
-                button.innerText = 'Hide Graph';
+                button.innerText = chrome.i18n.getMessage('buttonShowTable');
                 $(table).find('td').not('.last').hide();
+                var totalElem = $(table).find('.total').filter(":visible").get(0);
+                var graphLeft = totalElem.offsetLeft + totalElem.offsetWidth + 18; // +scrollbar
+                $(container).find('.graph').css('left', (graphLeft + 20) + 'px');
                 $(container).find('.scrollable').width(function(i, elem){
-                    var totalElem = $(table).find('.total').get(0);
-                    return totalElem.offsetLeft + totalElem.offsetWidth + 18; // +scrollbar
+                    return graphLeft;
                 });
             }
             else {
                 $(table).find('td').show();
                 container.classList.remove('graphMode');
-                button.innerText = 'Show Graph';
+                button.innerText = chrome.i18n.getMessage('buttonShowGraph');
                 osplits.graph.circuits[circuitId].hide();
             }
         }
