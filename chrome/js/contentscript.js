@@ -280,12 +280,15 @@ else {
 		onRunnerClicked : function(event) {
             var tbody = this;
             var table = tbody.parentElement;
-            if (!table.classList.contains('restricted')) {
-    			if (tbody.classList.contains('selected')) {
-    			    tbody.classList.remove('selected');
-    			} else {
-    			    tbody.classList.add('selected');
-    			}
+            var circuitId = table.dataset['circuitId'];
+            var runnerId = tbody.dataset['runnerId'];
+            var graphObj = osplits.graph.circuits[circuitId];
+            
+            if (tbody.classList.toggle('selected')) {
+                graphObj.showRunner(runnerId);
+            }
+            else {
+                graphObj.hideRunner(runnerId);
             }
 		},
 		toggleRestricted: function(event) {
@@ -437,6 +440,7 @@ else {
                 });
             });
             osplits.parser.OURDIV.appendChild(container);
+            osplits.graph.circuits[circuit.id] = osplits.graph.createGraphObject(table);
 		},
 		generateOneRunner: function(tx, isRunnerLast, table, runner) {
             var tbody, th, tr, td = undefined;
@@ -535,10 +539,25 @@ else {
         },
         createGraphObject : function(table) {
             var circuitId = parseInt(table.dataset.circuitId);
-            var bestTotal = 0, worstTotal = 0;
+            var bestTotal = 0;
+            var worstTotal = 0;
+            var totalTimes = {};
             var bestCumSec = [];
             var xAxis = [];
-            var runnerCanvas = {};
+            var runnerPlots = {};
+            var getWorst = function() {
+                var w = 0;
+                for (var rid in runnerPlots) {
+                    if (runnerPlots.hasOwnProperty(rid)) {
+                        var plot = runnerPlots[rid];
+                        var total = totalTimes[rid];
+                        if (plot.shown && total > w) {
+                            w = total;
+                        }
+                    }
+                }
+                return w;
+            };
             var graphLayers = document.createElement('div');
             graphLayers.classList.add('graph');
             var backgroundCanvas = document.createElement('canvas');
@@ -552,28 +571,50 @@ else {
             var seconds2y = function(s) {
                 return parseInt(s * osplits.graph.height / (worstTotal - bestTotal));
             };
+            var plotRunner = function(runnerId, ctx, timeRows) {
+                ctx.strokeStyle = osplits.graph.getColor(runnerId);
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                for (var j = 0; j < timeRows.length; j++) {
+                    var cumSec = timeRows.item(j).cumSec;
+                    var delta = cumSec - bestCumSec[j];
+                    var x = xAxis[j];
+                    var y = seconds2y(delta);
+                    ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+            };
             osplits.webdb.db.readTransaction(function(tx) {
-                tx.executeSql('SELECT min( t.legSec ) AS best, max( t.cumSec ) as worst FROM time t WHERE t.circuitId = ? GROUP BY t.numInCircuit ORDER BY t.numInCircuit;',
+                tx.executeSql("SELECT runnerId, cumSec FROM time WHERE circuitId = ? AND toCtrl = 'A';",
+                    [ circuitId ],
+                    function(tx, result){
+                        for (var i = 0; i < result.rows.length; i++) {
+                            var t = result.rows.item(i);
+                            totalTimes[t.runnerId] = t.cumSec;
+                        }
+                        tx.executeSql('SELECT min( t.legSec ) AS best FROM time t WHERE t.circuitId = ? GROUP BY t.numInCircuit ORDER BY t.numInCircuit;',
                                 [ circuitId ],
                                 function(tx, result) {
                                     var previous = 0;
-                                    for ( var i = 0; i < result.rows.length; i++) {
+                                    for (var i = 0; i < result.rows.length; i++) {
                                         var t = result.rows.item(i);
                                         bestTotal += t.best;
                                         bestCumSec.push(bestTotal);
-                                        worstTotal = t.worst;
                                     }
                                     for ( var i = 0; i < result.rows.length; i++) {
                                         var t = result.rows.item(i);
                                         var w = seconds2x(t.best);
                                         var h = osplits.graph.height;
-                                        ctx.fillStyle = i % 2 ? '#F1F1F1' : '#D7D7D7';
+                                        ctx.fillStyle = i % 2 ? '#F1F1F1' : '#E5E5E5';
                                         ctx.fillRect(previous, 0, w, h);
                                         previous += w;
                                         xAxis.push(previous);
                                     }
-                                });
-                    });
+                            });
+                        
+                });
+            });
 
             var buildRunnerCanvas = function(runnerId, callback) {
                 osplits.webdb.db.readTransaction(function(tx) {
@@ -582,43 +623,63 @@ else {
                         c.width = osplits.graph.width;
                         c.height = osplits.graph.height;
                         var ctx = c.getContext('2d');
-                        
-                        ctx.strokeStyle = osplits.graph.getColor(runnerId);//'#FFC984';
-                        ctx.lineWidth = 2;
-                        ctx.beginPath();
-                        ctx.moveTo(0, 0);
-                        for (var j = 0; j < result.rows.length; j++) {
-                            var cumSec = result.rows.item(j).cumSec;
-                            var delta = cumSec - bestCumSec[j];
-                            var x = xAxis[j];
-                            var y = seconds2y(delta);
-                            ctx.lineTo(x, y);
-                        }
-                        ctx.stroke();
+                        plotRunner(runnerId, ctx, result.rows);
                         callback(c);
                     });
                 });
             };
 
             return {
+                rescaleAllPlots : function() {
+                    var graphObj = this;
+                    // Clear first
+                    for (var rid in runnerPlots) {
+                        if (runnerPlots.hasOwnProperty(rid)) {
+                            var plot = runnerPlots[rid];
+                            if (plot.shown) {
+                                graphLayers.removeChild(plot.canvas);
+                            }
+                        }
+                    }
+                    runnerPlots = {};
+                    // Reverse the runner to scale once and for all rather than for each selected runner
+                    $(table).find('tbody.selected').reverse().each(function(index, elem) {
+                        var runnerId = elem.dataset['runnerId'];
+                        graphObj.showRunner(runnerId);
+                    });
+                },
                 hideRunner: function(runnerId){
-                    var c = runnerCanvas[runnerId];
-                    if (c && c.shown) {
-                        graphLayers.removeChild(c.canvas);
-                        c.shown = false;
+                    var plot = runnerPlots[runnerId];
+                    if (plot && plot.shown) {
+                        graphLayers.removeChild(plot.canvas);
+                        plot.shown = false;
+                        if (totalTimes[runnerId] === worstTotal) {
+                            delete runnerPlots[runnerId];
+                            // compute new worst and then clear and repaint
+                            worstTotal = getWorst();
+                            this.rescaleAllPlots();
+                        }
                     } 
                 },
                 showRunner: function(runnerId){
                     var _showCanvas = function(canvas) {
-                        runnerCanvas[runnerId] = {canvas: canvas, shown:true};
+                        runnerPlots[runnerId] = {canvas: canvas, shown:true, worst:worstTotal};
                         graphLayers.appendChild(canvas);
                     };
-                    var c = runnerCanvas[runnerId];
-                    if (!c) {
-                        buildRunnerCanvas(runnerId, _showCanvas);
+                    var totalTime = totalTimes[runnerId];
+                    if (worstTotal < totalTime) {
+                        // compute new worst and repaint
+                        worstTotal = totalTime;
+                        this.rescaleAllPlots();
                     }
-                    else if (!c.shown) {
-                        _showCanvas(c.canvas);
+                     else {
+                        var plot = runnerPlots[runnerId];
+                        if (!plot) {
+                            buildRunnerCanvas(runnerId, _showCanvas);
+                        }
+                        else if (!plot.shown) {
+                            _showCanvas(plot.canvas);
+                        }
                     }
                 },
                 hide : function() {
@@ -635,26 +696,8 @@ else {
             var circuitId = parseInt(table.dataset.circuitId);
             var container = button.parentElement.parentElement;
             
-            if (!container.classList.contains('graphMode')) {
+            if (container.classList.toggle('graphMode')) {
                 var graphObj = osplits.graph.circuits[circuitId];
-                if (!graphObj) {
-                    graphObj = osplits.graph.createGraphObject(table);
-                    osplits.graph.circuits[circuitId] = graphObj;
-                    $(table).find('tbody.selected').each(function(index, elem) {
-                        var runnerId = elem.dataset['runnerId'];
-                        graphObj.showRunner(runnerId);
-                    });
-                    $(table).find('tbody').click(function(e) {
-                        var runnerId = this.dataset['runnerId'];
-                        if (this.classList.contains('selected')) {
-                            graphObj.showRunner(runnerId);
-                        }
-                        else {
-                            graphObj.hideRunner(runnerId);
-                        }
-                    });
-                }
-                container.classList.add('graphMode');
                 graphObj.show();
                 button.innerText = chrome.i18n.getMessage('buttonShowTable');
                 $(table).find('td').not('.last').hide();
@@ -667,7 +710,6 @@ else {
             }
             else {
                 $(table).find('td').show();
-                container.classList.remove('graphMode');
                 button.innerText = chrome.i18n.getMessage('buttonShowGraph');
                 osplits.graph.circuits[circuitId].hide();
             }
@@ -678,6 +720,7 @@ else {
 	chrome.runtime.onMessage.addListener(function(msg) {
 		switch (msg.cmd) {
 		case 'parse':
+		    jQuery.fn.reverse = jQuery.fn.reverse || [].reverse;
 			var found = osplits.parser.parseDocument();
 			console.log("O'Splits: Parsing document found " + found + " circuits");
 		    chrome.extension.sendMessage({cmd:'parseok', count:found });
