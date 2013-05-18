@@ -483,8 +483,12 @@ else {
             tr = document.createElement('tr');
             tr.dataset['time'] = 'cum';
             tbody.appendChild(tr);
-            // place holder for rank
             th = document.createElement('th');
+            var square = document.createElement('div');
+            square.classList.add('square');
+            square.style.backgroundColor = osplits.graph.getColor(runner.id);
+            th.classList.add('right');
+            th.appendChild(square);
             tr.appendChild(th);
             th = document.createElement('th');
             th.innerText = runner.club;

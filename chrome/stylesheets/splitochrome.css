@@ -61,6 +61,11 @@
     top: 0;
     left: 0;
 }
+#osplits .graphMode .selected .square {
+    border-radius: 2px;
+    width: 10px;
+    height: 10px;
+}
 #osplits .graphMode {
     min-height: 560px;
 }
