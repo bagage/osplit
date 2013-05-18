@@ -597,7 +597,7 @@ else {
                             var t = result.rows.item(i);
                             totalTimes[t.runnerId] = t.cumSec;
                         }
-                        tx.executeSql('SELECT min( t.legSec ) AS best FROM time t WHERE t.circuitId = ? GROUP BY t.numInCircuit ORDER BY t.numInCircuit;',
+                        tx.executeSql('SELECT min( t.legSec ) AS best, t.numInCircuit AS num FROM time t WHERE t.circuitId = ? GROUP BY t.numInCircuit ORDER BY t.numInCircuit;',
                                 [ circuitId ],
                                 function(tx, result) {
                                     var previous = 0;
@@ -606,13 +606,29 @@ else {
                                         bestTotal += t.best;
                                         bestCumSec.push(bestTotal);
                                     }
-                                    for ( var i = 0; i < result.rows.length; i++) {
+                                    var skipLabel = false;
+                                    for (var i = 0; i < result.rows.length; i++) {
                                         var t = result.rows.item(i);
                                         var w = seconds2x(t.best);
-                                        var h = osplits.graph.height;
                                         ctx.fillStyle = i % 2 ? '#F1F1F1' : '#E5E5E5';
-                                        ctx.fillRect(previous, 0, w, h);
+                                        ctx.fillRect(previous, 0, w, osplits.graph.height);
                                         previous += w;
+                                        
+                                        // label
+                                        var label = '' + t.num;
+                                        ctx.font = '13pt';
+                                        ctx.textAlign = 'right';
+                                        ctx.fillStyle = '#0A0A0A';
+                                        var metrics = ctx.measureText(label);
+                                        var width = metrics.width;
+                                        if (width > w && !skipLabel) {
+                                            // skip this label...
+                                            skipLabel = true;
+                                        }
+                                        else {
+                                            skipLabel = false;
+                                            ctx.fillText(label, previous, osplits.graph.height);
+                                        }
                                         xAxis.push(previous);
                                     }
                             });
