@@ -309,6 +309,7 @@ else {
 		},
 		_highlightBest: function(table, rowId, query){
             var cicuitId = table.dataset['circuitId'];
+            table.dataset['best'] = rowId;
             $(table).find('.highlighted').removeClass('highlighted');
 		    osplits.webdb.db.readTransaction(function(tx){
 		        tx.executeSql(query, [cicuitId, cicuitId], function(tx, result){
@@ -321,18 +322,23 @@ else {
 		        });
 		    });
         },
-        highlightBestLeg: function(event) {
+        QUERY_BEST_LEG: 'SELECT r.id, t1.numInCircuit FROM time AS t1, runner AS r WHERE t1.circuitId = ? AND t1.runnerId = r.id AND t1.legSec = (SELECT min( t2.legSec ) FROM time t2 WHERE t2.numInCircuit = t1.numInCircuit AND t2.circuitId = ? GROUP BY t2.numInCircuit) order by t1.numInCircuit;', 
+        QUERY_BEST_CUM: 'SELECT r.id, t1.numInCircuit FROM time AS t1, runner AS r WHERE t1.circuitId = ? AND t1.runnerId = r.id AND t1.cumSec = (SELECT min( t2.cumSec ) FROM time t2 WHERE t2.numInCircuit = t1.numInCircuit AND t2.circuitId = ? GROUP BY t2.numInCircuit) order by t1.numInCircuit;', 
+        toggleHighlightBest: function(event) {
             var button = this;
             var table = $(button).parent().parent().find('table').get(0);
-            var query = 'SELECT r.id, t1.numInCircuit FROM time AS t1, runner AS r WHERE t1.circuitId = ? AND t1.runnerId = r.id AND t1.legSec = (SELECT min( t2.legSec ) FROM time t2 WHERE t2.numInCircuit = t1.numInCircuit AND t2.circuitId = ? GROUP BY t2.numInCircuit) order by t1.numInCircuit;';
-            osplits.tables._highlightBest(table, 'leg', query);
+            var curr = table.dataset['best'];
+            switch (curr) {
+            case 'leg':
+                button.innerText = chrome.i18n.getMessage('buttonBestLeg');
+                osplits.tables._highlightBest(table, 'cum', osplits.tables.QUERY_BEST_CUM);
+                break;
+            case 'cum':
+                button.innerText = chrome.i18n.getMessage('buttonBestCum');
+                osplits.tables._highlightBest(table, 'leg', osplits.tables.QUERY_BEST_LEG);
+                break;
+            }
 		},
-		highlightBestCum: function(event) {
-            var button = this;
-            var table = $(button).parent().parent().find('table').get(0);
-            var query = 'SELECT r.id, t1.numInCircuit FROM time AS t1, runner AS r WHERE t1.circuitId = ? AND t1.runnerId = r.id AND t1.cumSec = (SELECT min( t2.cumSec ) FROM time t2 WHERE t2.numInCircuit = t1.numInCircuit AND t2.circuitId = ? GROUP BY t2.numInCircuit) order by t1.numInCircuit;';
-            osplits.tables._highlightBest(table, 'cum', query);
-        },
 		toggleDisplay : function() {
 			if (osplits.parser.OURDIV) {
 				console.log("O'Splits: reverting to original");
@@ -362,13 +368,8 @@ else {
             caption.appendChild(button);
             
             button = document.createElement('button');
-            button.innerText = chrome.i18n.getMessage('buttonBestLeg');
-            button.addEventListener('click', osplits.tables.highlightBestLeg);
-            caption.appendChild(button);
-
-            button = document.createElement('button');
             button.innerText = chrome.i18n.getMessage('buttonBestCum');
-            button.addEventListener('click', osplits.tables.highlightBestCum);
+            button.addEventListener('click', osplits.tables.toggleHighlightBest);
             caption.appendChild(button);
 
             button = document.createElement('button');
@@ -440,6 +441,7 @@ else {
                 });
             });
             osplits.parser.OURDIV.appendChild(container);
+            osplits.tables._highlightBest(table, 'leg', osplits.tables.QUERY_BEST_LEG);
             osplits.graph.circuits[circuit.id] = osplits.graph.createGraphObject(table);
 		},
 		generateOneRunner: function(tx, isRunnerLast, table, runner) {

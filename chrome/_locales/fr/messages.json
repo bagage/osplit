@@ -1,8 +1,8 @@
 {
     "buttonFilterOn": {"message": "Voir uniquement sélectionnés"},
     "buttonFilterOff": {"message": "Supprimer le filtre"},
-    "buttonBestLeg": {"message": "Meilleurs temps par poste"},
-    "buttonBestCum": {"message": "Meilleurs temps cumulés"},
+    "buttonBestLeg": {"message": "Voir meilleurs temps par poste"},
+    "buttonBestCum": {"message": "Voir meilleurs temps cumulés"},
     "buttonShowGraph": {"message": "Voir graphique"},
     "buttonShowTable": {"message": "Voir tableau"},
     "extensionDesc": { "message": "Visualisez les résultats d'OE comme jamais!" },
