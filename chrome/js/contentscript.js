@@ -542,7 +542,7 @@ else {
             var sat = [ 55, 70, 85, 100 ];
             var lum = [ 40, 55, 70 ];
             var turns = parseInt(i / hue.length);
-            var h = hue[i % hue.length];
+            var h = (hue[i % hue.length] + 10 * turns) % 360;
             var s = sat[turns * i % sat.length];
             var l = lum[turns * i % lum.length];
             return 'hsl(' + h + ',' + s + '%,' + l + '%)';
