@@ -537,11 +537,13 @@ else {
         width : 1000,
         height : 500,
         circuits : {},
-        getColor: function(i){
-            var r = i*23%200 + 10;
-            var g = i*49%200 + 30;
-            var b = i*11%200 + 10;
-            return 'rgb(' + r + ',' + g + ',' + b + ')';
+        getColor: function(i) {
+            var angle = i * 50;
+            var turns = angle / 360;
+            var h = angle % 360;
+            var s = (turns * i % 4) * 20 + 40; // 40,60,80,100
+            var l = (turns * i % 4) * 10 + 30; // 30,40,50,60
+            return 'hsl(' + h + ',' + s + '%,' + l + '%)';
         },
         createGraphObject : function(table) {
             var circuitId = parseInt(table.dataset.circuitId);
