@@ -537,12 +537,14 @@ else {
         width : 1000,
         height : 500,
         circuits : {},
-        getColor: function(i) {
-            var angle = i * 50;
-            var turns = angle / 360;
-            var h = angle % 360;
-            var s = (turns * i % 4) * 20 + 40; // 40,60,80,100
-            var l = (turns * i % 4) * 10 + 30; // 30,40,50,60
+        getColor : function(i) {
+            var hue = [ 0, 40, 110, 190, 240, 300 ];
+            var sat = [ 55, 70, 85, 100 ];
+            var lum = [ 40, 55, 70 ];
+            var turns = parseInt(i / hue.length);
+            var h = hue[i % hue.length];
+            var s = sat[turns * i % sat.length];
+            var l = lum[turns * i % lum.length];
             return 'hsl(' + h + ',' + s + '%,' + l + '%)';
         },
         createGraphObject : function(table) {
