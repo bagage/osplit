@@ -277,20 +277,51 @@ else {
 	    return tmp.trim();
 	},
 	osplits.tables = {
-		onRunnerClicked : function(event) {
+        onRunnerClicked : function(event) {
             var tbody = this;
+            osplits.tables._onRunnerClicked(tbody);
+        },
+	    _onRunnerClicked : function(tbody, forceSelected) {
             var table = tbody.parentElement;
             var circuitId = table.dataset['circuitId'];
             var runnerId = tbody.dataset['runnerId'];
             var graphObj = osplits.graph.circuits[circuitId];
             
-            if (tbody.classList.toggle('selected')) {
+            var show = forceSelected;
+            if (forceSelected === undefined) {
+                show = tbody.classList.toggle('selected');
+            }
+            else if (forceSelected) {
+                tbody.classList.add('selected');
+            }
+            else {
+                tbody.classList.remove('selected');
+            }
+            if (show) {
                 graphObj.showRunner(runnerId);
             }
             else {
                 graphObj.hideRunner(runnerId);
             }
 		},
+        onClubClicked : function(event) {
+            var cell = this;
+            var club = cell.innerText;
+            var tbody = cell.parentElement.parentElement.parentElement;
+            var isSelected = tbody.classList.contains('selected');
+            var table = tbody.parentElement;
+            var all = $(table).find('th.club:contains(' + club + ')').parent().parent();
+            if (isSelected) {
+                all = all.reverse();
+            }
+            all.each(function(index, elem) {
+                osplits.tables._onRunnerClicked(elem, !isSelected);
+            });
+            event.stopPropagation();
+        },
+        onControlClicked : function(event) {
+            
+        },		
 		toggleRestricted: function(event) {
 		    var button = this;
             var table = $(button).parent().parent().find('table').get(0);
@@ -412,6 +443,8 @@ else {
                     th = document.createElement('td');
                     th.innerHTML = ctrl.numInCircuit + '&nbsp;<span class="ctrlid">' + ctrl.toCtrl + '</span>';
                     th.classList.add('right');
+                    th.classList.add('clickable');
+                    th.addEventListener('click', osplits.tables.onControlClicked);
                     thead.appendChild(th);
                 }
 
@@ -493,9 +526,13 @@ else {
             th.appendChild(square);
             tr.appendChild(th);
             th = document.createElement('th');
-            th.innerText = runner.club;
+            var span = document.createElement('span');
+            span.innerText = runner.club;
+            span.classList.add('clickable');
+            span.addEventListener('click', osplits.tables.onClubClicked);
             th.classList.add('club');
             th.classList.add('left');
+            th.appendChild(span);
             tr.appendChild(th);
             // place holder for category
             if (osplits.parser.HEADLINE.category) { 

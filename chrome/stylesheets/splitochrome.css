@@ -25,11 +25,15 @@
 	position: relative;
 	top: -1px;
 }
-
+#osplits .clickable {
+	cursor: pointer;
+}
+#osplits .clickable:hover {
+	text-decoration: underline;
+}
 #osplits button:hover {
 	background-color: #C4975E;
 }
-
 #osplits caption {
 	font-weight: bold;
 	text-align: left;
