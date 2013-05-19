@@ -538,10 +538,10 @@ else {
         height : 500,
         circuits : {},
         getColor: function(i){
-            var r = (i*23%200 + 10).toString(16);
-            var g = (i*49%200 + 30).toString(16);
-            var b = (i*11%200 + 10).toString(16);
-            return '#' + r + g + b;
+            var r = i*23%200 + 10;
+            var g = i*49%200 + 30;
+            var b = i*11%200 + 10;
+            return 'rgb(' + r + ',' + g + ',' + b + ')';
         },
         createGraphObject : function(table) {
             var circuitId = parseInt(table.dataset.circuitId);
