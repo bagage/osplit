@@ -443,7 +443,7 @@ else {
                     th = document.createElement('td');
                     th.innerHTML = ctrl.numInCircuit + '&nbsp;<span class="ctrlid">' + ctrl.toCtrl + '</span>';
                     th.classList.add('right');
-                    th.classList.add('clickable');
+//                    th.classList.add('clickable');
                     th.addEventListener('click', osplits.tables.onControlClicked);
                     thead.appendChild(th);
                 }

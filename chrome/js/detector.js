@@ -1,4 +1,4 @@
-var regex = /OE20\d\d © Stephan Krämer 20\d\d/;
+var regex = /\w\w20\d\d © Stephan Krämer 20\d\d/;
 if (regex.test(document.body.innerText)) {
     chrome.extension.sendMessage({cmd:'oedetected'});
 }
