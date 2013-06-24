@@ -133,7 +133,7 @@ else {
                 if (fromCircuit.rankedRunners.length > 0) {
                     var toCircuit = {};
                     toCircuit.number = fromCircuit.circuitNum;
-                    toCircuit.description = fromCircuit.name;
+                    toCircuit.description = fromCircuit.description;
                     toCircuit.controls = [];
                     toCircuit.runners = [];
                     for (var ctrlIndex=0; ctrlIndex < fromCircuit.rankedRunners[0].controlCodes.length; ctrlIndex++) {
