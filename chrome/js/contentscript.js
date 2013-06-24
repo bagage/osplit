@@ -130,35 +130,38 @@ else {
         storeJson: function(jsonResults) {
             for(var circuitNum=0; circuitNum < jsonResults.circuits.length; circuitNum++) {
                 var fromCircuit = jsonResults.circuits[circuitNum];
-                var toCircuit = {};
-                toCircuit.number = fromCircuit.circuitNum;
-                toCircuit.description = fromCircuit.name;
-                toCircuit.controls = [];
-                toCircuit.runners = [];
-                for (var ctrlIndex=0; ctrlIndex < fromCircuit.rankedRunners[0].controlCodes.length; ctrlIndex++) {
-                    var ctrlId = fromCircuit.rankedRunners[0].controlCodes[ctrlIndex];
-                    if (fromCircuit.rankedRunners[0].controlCodes[ctrlIndex] === 'F') {
-                        break;
+                if (fromCircuit.rankedRunners.length > 0) {
+                    var toCircuit = {};
+                    toCircuit.number = fromCircuit.circuitNum;
+                    toCircuit.description = fromCircuit.name;
+                    toCircuit.controls = [];
+                    toCircuit.runners = [];
+                    for (var ctrlIndex=0; ctrlIndex < fromCircuit.rankedRunners[0].controlCodes.length; ctrlIndex++) {
+                        var ctrlId = fromCircuit.rankedRunners[0].controlCodes[ctrlIndex];
+                        if (fromCircuit.rankedRunners[0].controlCodes[ctrlIndex] === 'F') {
+                            break;
+                        }
+                        toCircuit.controls.push({n:''+(ctrlIndex+1), id:ctrlId});
                     }
-                    toCircuit.controls.push({n:''+ctrlIndex, id:ctrlId});
-                }
-                toCircuit.controls.push({n:''+toCircuit.controls.length, id:'A'});
-                
-                for(var runnerNum=0; runnerNum < fromCircuit.rankedRunners.length; runnerNum++) {
-                    var fromRunner = fromCircuit.rankedRunners[runnerNum];
-                    var toRunner = {};
-                    toRunner.rank = fromRunner.rank;
-                    toRunner.name = fromRunner.name;
-                    toRunner.club = fromRunner.club;
-                    toRunner.category = fromRunner.category;
-                    toRunner.legTimes = [];
-                    toRunner.cumTimes = [];
-                    for (var i=0; i<toCircuit.controls.length; i++) {
-                        toRunner.legTimes[i] = fromRunner.splitTimes[i];
-                        toRunner.cumTimes[i] = fromRunner.cumulatedTimes[i];
+                    toCircuit.controls.push({n:''+toCircuit.controls.length+1, id:'A'});
+                    
+                    for(var runnerNum=0; runnerNum < fromCircuit.rankedRunners.length; runnerNum++) {
+                        var fromRunner = fromCircuit.rankedRunners[runnerNum];
+                        var toRunner = {};
+                        toRunner.rank = fromRunner.rank;
+                        toRunner.name = fromRunner.firstname + ' ' + fromRunner.lastname;
+                        toRunner.club = fromRunner.club;
+                        toRunner.category = fromRunner.category;
+                        toRunner.legTimes = [];
+                        toRunner.cumTimes = [];
+                        for (var i=0; i<toCircuit.controls.length; i++) {
+                            toRunner.legTimes[i] = fromRunner.splitTimes[i];
+                            toRunner.cumTimes[i] = fromRunner.cumulatedTimes[i];
+                        }
+                        toCircuit.runners.push(toRunner);
                     }
+                    osplits.webdb.storeCircuitTxn(circuitNum, toCircuit);
                 }
-                osplits.webdb.storeCircuitTxn(circuitNum, toCircuit);
             }
             return circuitNum;
         },
@@ -816,15 +819,22 @@ else {
 
 	window.osplits = osplits;
 	chrome.runtime.onMessage.addListener(function(msg) {
+	    jQuery.fn.reverse = jQuery.fn.reverse || [].reverse;
 		switch (msg.cmd) {
 		case 'parse':
-		    jQuery.fn.reverse = jQuery.fn.reverse || [].reverse;
-			var found = osplits.parser.parseDocument();
+		    osplits.parser.BACKUP = document.getElementsByTagName('pre')[0];
+            osplits.parser.PARENT = osplits.parser.BACKUP.parentElement;
+            osplits.parser.LANG = osplits.parser.LANGS.fr;
+		    
+		    var found = osplits.parser.parseDocument();
 			console.log("O'Splits: Parsing document found " + found + " circuits");
 		    chrome.extension.sendMessage({cmd:'parseok', count:found });
 			break;
         case 'readJson':
-            jQuery.fn.reverse = jQuery.fn.reverse || [].reverse;
+            osplits.parser.BACKUP = document.getElementById('gecoResults');
+            osplits.parser.PARENT = osplits.parser.BACKUP.parentElement;
+            osplits.parser.LANG = osplits.parser.LANGS.fr;
+
             var found = osplits.parser.storeJson(window.gecoOrienteeringResults);
             console.log("O'Splits: Read JSON & found " + found + " circuits");
             chrome.extension.sendMessage({cmd:'parseok', count:found });
