@@ -191,7 +191,7 @@ else {
                 }
                 return new osplits.parser.Extractor(from, to);
             };  
-			osplits.parser.HEADLINE.rank = extractRightAligned(osplits.parser.LANG.rank, 2);
+			osplits.parser.HEADLINE.rank = extractRightAligned(osplits.parser.LANG.rank, 3);
 			osplits.parser.HEADLINE.name = extractLeftAligned(osplits.parser.LANG.name);
 			osplits.parser.HEADLINE.category = extractLeftAligned(osplits.parser.LANG.category, 4);
 			osplits.parser.HEADLINE.time = extractRightAligned(osplits.parser.LANG.time, '3:59:59'.length);
