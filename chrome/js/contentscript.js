@@ -181,6 +181,7 @@ else {
                 }
                 var to = head.slice(from+tt.length).search(/\S/);
                 to += tt.length + from;
+                to -= 2; // this is a dirty hack for results by categories (http://nose42.fr/data/resultats/2013/we-clmd/CLMD_CategoriesSI.html)
                 return new osplits.parser.Extractor(from, to);
             };  
             var extractRightAligned = function(tt, len){
