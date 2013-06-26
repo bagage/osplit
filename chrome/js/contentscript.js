@@ -57,8 +57,9 @@ else {
     osplits.webdb = {
         db: null,
         open : function() {
+            var dbname = 'osplits:' + window.location.pathname;
             var dbSize = 5 * 1024 * 1024; // 5MB
-            osplits.webdb.db = openDatabase("osplits", "1.0", "O'Splits Storage", dbSize);
+            osplits.webdb.db = openDatabase(dbname, "1.0", "O'Splits Storage", dbSize);
         },
         onError : function(tx, e) {
             console.error("O'Splits: insertione failed: " + e);
