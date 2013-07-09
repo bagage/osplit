@@ -118,7 +118,8 @@ else {
                 rank:'Pl',
                 name:'Nom',
                 category:'Cat.',
-                time: 'Temps'
+                time: 'Temps',
+                pm: 'pm'
             }
         },
         LANG:undefined,
@@ -262,19 +263,23 @@ else {
             } while (lines.length > 0 && !line);
             lines.unshift(line);
             // Read runners
-            var runner;
+            var runner, absRank = 0;
             do {
-                runner = osplits.parser.getOneRunner(circuit.controlLinesCount, lines);
+                runner = osplits.parser.getOneRunner(circuit.controlLinesCount, lines, ++absRank);
                 if (runner) {
+                    console.log('Read ' + runner.name);
                     circuit.runners.push(runner);
                 }
             } while (runner);
             return circuit;
         },
-        getOneRunner : function(controlLinesCount, lines) {
+        getOneRunner : function(controlLinesCount, lines, absoluteRank) {
             var line1 = lines.shift();
             if (!line1) {
-                return undefined;
+                line1 = lines.shift(); // allow 1 empty line
+                if (!line1) {
+                    return undefined;
+                }
             }
             var line2 = lines.shift();
             var runner = {};
@@ -282,6 +287,12 @@ else {
             runner.name = osplits.parser.HEADLINE.name && osplits.parser.HEADLINE.name.extract(line1) || '';
             runner.category = osplits.parser.HEADLINE.category && osplits.parser.HEADLINE.category.extract(line1) || '';
             runner.club = osplits.parser.HEADLINE.name && osplits.parser.HEADLINE.name.extract(line2) || '';
+            var time = osplits.parser.HEADLINE.time && osplits.parser.HEADLINE.time.extract(line1) || '';
+
+            if (time.trim() === osplits.parser.LANG.pm) {
+                runner.rank = 900 + absoluteRank; //FIXME
+            }
+
             if (!runner.rank) {
                 return undefined;
             }
@@ -302,13 +313,43 @@ else {
             }
             do {
                 line = lines.shift();
-            } while(lines.length > 0 && line && !line.match(osplits.parser.RE_CIRCUIT) && !osplits.parser.HEADLINE.rank.extract(line))
+            } while(lines.length > 0 && line && !line.match(osplits.parser.RE_CIRCUIT) && !osplits.parser.HEADLINE.time.extract(line))
             if (line) {
                 lines.unshift(line);
             }
-
+            
+//			var match, indices = [];
+//			var regxp = /-----/g;
+//			while((match = regxp.exec(totals))!= null) {
+//			    indices.push(match.index);
+//			}
+//			var replaced = '', pos=0;
+//			var pmMarker = '-----';
+//			if (indices.length > 0) {
+//                for ( var i = 0; i < indices.length; i++) {
+//                    replaced += (legs.slice(pos, indices[i]) || ' ');
+//                    replaced += pmMarker;
+//                    pos = indices[i] + pmMarker.length;
+//                }
+//			}
+//			replaced += legs.slice(pos);
+//			if (replaced !== legs) {
+//                console.log("Read runner " + runner.name);
+//                console.log("    TOTAL:" + totals);
+//                console.log("    BEFORE:" + legs);
+//                console.log("    AFTER:" + replaced);
+//			    legs = replaced;
+//			}
+			
             runner.cumTimes = totals.trim().split(/\s+/);
             runner.legTimes = legs.trim().split(/\s+/);
+
+            var pmMarker = '-----';
+            for(var i=0; i<runner.cumTimes.length; i++) {
+                if (runner.cumTimes[i] === pmMarker ) {
+                    runner.legTimes.splice(i, 0, pmMarker);
+                }
+            }
             return runner;
         }
     };
