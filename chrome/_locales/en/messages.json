@@ -9,5 +9,6 @@
     "extensionFullName": { "message": "O'Splits" },
     "labelCategory": { "message": "Cat." },
     "labelName": { "message": "Name" },
-    "labelRank": { "message": "#" }
+    "labelRank": { "message": "#" },
+	"mp": { "message": "mp" }
 }

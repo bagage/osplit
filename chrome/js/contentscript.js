@@ -9,12 +9,14 @@ else {
     };
     var osplits = {};
     osplits.util = {
+        VALUE_MP : 100000000,                    //EDIT 
+        VALUE_EMPTY : 100000001,
         str2sec: function(tString) {
             if (!tString) {
-                return -1;
+                return osplits.util.VALUE_EMPTY;
             }
             else if (tString === '-----') {
-                return -2;
+                return osplits.util.VALUE_MP;
             }
             var bits = tString.split(':');
             if (bits.length < 3) {
@@ -27,10 +29,10 @@ else {
             return sec;
         },
         sec2str: function(tSec) {
-            if (tSec === -1) {
+            if (tSec === osplits.util.VALUE_EMPTY) {
                 return '';
             }
-            else if (tSec === -2) {
+            else if (tSec === osplits.util.VALUE_MP) {
                 return '-----';
             }
             var bits = [];
@@ -290,7 +292,7 @@ else {
             var time = osplits.parser.HEADLINE.time && osplits.parser.HEADLINE.time.extract(line1) || '';
 
             if (time.trim() === osplits.parser.LANG.pm) {
-                runner.rank = 900 + absoluteRank; //FIXME
+                runner.rank = osplits.util.VALUE_MP + absoluteRank; //FIXME, EDIT
             }
 
             if (!runner.rank) {
@@ -318,29 +320,29 @@ else {
                 lines.unshift(line);
             }
             
-//			var match, indices = [];
-//			var regxp = /-----/g;
-//			while((match = regxp.exec(totals))!= null) {
-//			    indices.push(match.index);
-//			}
-//			var replaced = '', pos=0;
-//			var pmMarker = '-----';
-//			if (indices.length > 0) {
+//            var match, indices = [];
+//            var regxp = /-----/g;
+//            while((match = regxp.exec(totals))!= null) {
+//                indices.push(match.index);
+//            }
+//            var replaced = '', pos=0;
+//            var pmMarker = '-----';
+//            if (indices.length > 0) {
 //                for ( var i = 0; i < indices.length; i++) {
 //                    replaced += (legs.slice(pos, indices[i]) || ' ');
 //                    replaced += pmMarker;
 //                    pos = indices[i] + pmMarker.length;
 //                }
-//			}
-//			replaced += legs.slice(pos);
-//			if (replaced !== legs) {
+//            }
+//            replaced += legs.slice(pos);
+//            if (replaced !== legs) {
 //                console.log("Read runner " + runner.name);
 //                console.log("    TOTAL:" + totals);
 //                console.log("    BEFORE:" + legs);
 //                console.log("    AFTER:" + replaced);
-//			    legs = replaced;
-//			}
-			
+//                legs = replaced;
+//            }
+            
             runner.cumTimes = totals.trim().split(/\s+/);
             runner.legTimes = legs.trim().split(/\s+/);
 
@@ -400,9 +402,32 @@ else {
             });
             event.stopPropagation();
         },
-        onControlClicked : function(event) {
-            
-        },        
+        // onControlClicked : function(event) {                //ICI
+            // var th = this;
+            // /^(\d+)/.exec(th.innerText);
+            // var numInCircuit = RegExp.$1;
+            // var table = th.parentElement.parentElement;
+            // var tbodies = $(table).find('tbody[data-runner-id]').get();
+            // var times = []
+            // for (var i = 0; i < tbodies.length ; i++) {
+                // times[i] = osplits.tables.getRunnerTimeOnThisControl(tbodies[i],numInCircuit);
+            // }
+            // for (var i = 0; i < tbodies.length ; i++) {
+                // var idJustAfter = -1;
+                // for (var j = 0; j < i; j++) {
+                    // if(times[j] > times[i] && (idJustAfter == -1 || times[j] < times[idJustAfter])) {
+                        // idJustAfter = j;
+                    // }
+                // }
+                // if (i != idJustAfter && idJustAfter != -1) {
+                    // $(tbodies[idJustAfter]).before(tbodies[i]);
+                // }
+            // }
+        // },
+        // getRunnerTimeOnThisControl : function(tbody, numInCircuit) {
+            // var td = $(tbody).find('tr[data-time="leg"] td[data-ctrl-num="' + numInCircuit + '"]').get()[0];
+            // return osplits.util.str2sec(td.innerText);
+        // },
         toggleRestricted: function(event) {
             var button = this;
             var table = $(button).parent().parent().find('table').get(0);
@@ -524,7 +549,7 @@ else {
                     th = document.createElement('td');
                     th.innerHTML = ctrl.numInCircuit + '&nbsp;<span class="ctrlid">' + ctrl.toCtrl + '</span>';
                     th.classList.add('right');
-//                    th.classList.add('clickable');
+                    th.classList.add('clickable');
                     th.addEventListener('click', osplits.tables.onControlClicked);
                     thead.appendChild(th);
                 }
@@ -568,7 +593,12 @@ else {
             tbody.appendChild(tr);
 
             th = document.createElement('th');
-            th.innerText = runner.rank;
+            var rank = runner.rank;
+            if (rank >= osplits.util.VALUE_MP) {                        //EDIT
+                th.innerText = chrome.i18n.getMessage('mp');
+            } else {
+                th.innerText = runner.rank;
+            }
             th.classList.add('right');
             tr.appendChild(th);
 
