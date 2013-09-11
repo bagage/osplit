@@ -817,17 +817,58 @@ else {
             var seconds2y = function(s) {
                 return parseInt(s * osplits.graph.height / (worstTotal - bestTotal));
             };
+            
+            var dashedLine = function (x1, y1, x2, y2, ctx) {
+                var dashLen = 3;
+
+                ctx.moveTo(x1, y1);
+
+                var dX = x2 - x1;
+                var dY = y2 - y1;
+                var dashes = Math.floor(Math.sqrt(dX * dX + dY * dY) / dashLen);
+                var dashX = dX / dashes;
+                var dashY = dY / dashes;
+                
+                var i;
+                for (i = 0; i < dashes ; i++) {
+                    x1 += dashX;
+                    y1 += dashY;
+                    if (i % 2 == 0)
+                        ctx.moveTo(x1, y1);
+                    else
+                        ctx.lineTo(x1, y1);
+                }
+                if (i % 2 == 0)
+                    ctx.moveTo(x2, y2);
+                else
+                    ctx.lineTo(x2, y2);
+            };
+            
             var plotRunner = function(runnerId, ctx, timeRows) {
                 ctx.strokeStyle = osplits.graph.getColor(runnerId);
                 ctx.lineWidth = 2;
                 ctx.beginPath();
                 ctx.moveTo(0, 0);
+                var isPreMp = false;
+                var preX, preY = 0;
                 for (var j = 0; j < timeRows.length; j++) {
                     var cumSec = timeRows.item(j).cumSec;
-                    var delta = cumSec - bestCumSec[j];
-                    var x = xAxis[j];
-                    var y = seconds2y(delta);
-                    ctx.lineTo(x, y);
+                    if (cumSec >= osplits.util.VALUE_MP) {
+                        isPreMp = true;
+                    } else {
+                        var delta = cumSec - bestCumSec[j];
+                        var x = xAxis[j];
+                        var y = seconds2y(delta);
+                        
+                        if (!isPreMp) {
+                            ctx.lineTo(x, y);
+                        } else {
+                            dashedLine(preX, preY, x, y, ctx);
+                        }
+                        preX = x;
+                        preY = y;
+                        isPreMp = false;
+                    }
                 }
                 ctx.stroke();
             };
