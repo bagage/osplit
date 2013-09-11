@@ -10,5 +10,8 @@
     "labelCategory": { "message": "Cat." },
     "labelName": { "message": "Nom" },
     "labelRank": { "message": "Pl." },
-	"mp": { "message": "pm" }
+    "mp": { "message": "pm" },
+    "closeButton": { "message" : "Fermer" },
+    "labelTime": { "message" : "Temps" },
+    "titleCtrlRanking": { "message" : "Classement poste-à-poste" }
 }

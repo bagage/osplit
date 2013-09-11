@@ -10,5 +10,8 @@
     "labelCategory": { "message": "Cat." },
     "labelName": { "message": "Name" },
     "labelRank": { "message": "#" },
-	"mp": { "message": "mp" }
+    "mp": { "message": "mp" },
+    "closeButton": { "message" : "Close" },
+    "labelTime": {"message" : "Time"},
+    "titleCtrlRanking": {"message" : "Leg ranking"}
 }

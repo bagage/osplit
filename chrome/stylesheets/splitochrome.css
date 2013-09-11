@@ -1,51 +1,51 @@
 #osplits {
-	font-family: Verdana, sans-serif;
+    font-family: Verdana, sans-serif;
 }
 #osplits h1 {
-	font-size: 1.5em;
-	margin: 1em 0 0.5em 1em;
+    font-size: 1.5em;
+    margin: 1em 0 0.5em 1em;
 }
 #osplits table {
-	background: white;
-	border: none;
-	border-collapse: collapse;
-	font: normal 11px verdana, arial, helvetica, sans-serif;
-	overflow-x: scroll; 
+    background: white;
+    border: none;
+    border-collapse: collapse;
+    font: normal 11px verdana, arial, helvetica, sans-serif;
+    overflow-x: scroll; 
 }
 
 #osplits button {
-	border-style:none;
-	background-color: #EBB166;
-	text-decoration: none;
-	font-size: 11px;
-	border-radius: 5px;
-	cursor: pointer;
-	-webkit-box-shadow: 1px 1px 1px #888;
-	color: white;
-	position: relative;
-	top: -1px;
+    border-style:none;
+    background-color: #EBB166;
+    text-decoration: none;
+    font-size: 11px;
+    border-radius: 5px;
+    cursor: pointer;
+    -webkit-box-shadow: 1px 1px 1px #888;
+    color: white;
+    position: relative;
+    top: -1px;
 }
 #osplits .clickable {
-	cursor: pointer;
+    cursor: pointer;
 }
 #osplits .clickable:hover {
-	text-decoration: underline;
+    text-decoration: underline;
 }
 #osplits button:hover {
-	background-color: #C4975E;
+    background-color: #C4975E;
 }
 #osplits caption {
-	font-weight: bold;
-	text-align: left;
-	font-size: 16px;
-	margin-left: 2em;
+    font-weight: bold;
+    text-align: left;
+    font-size: 16px;
+    margin-left: 2em;
     margin-bottom: 0.5em;
     white-space: nowrap;
 }
 
 #osplits .highlighted {
-	color: #0000FF;
-	font-weight: bold;
+    color: #0000FF;
+    font-weight: bold;
 }
 
 #osplits .left {
@@ -53,7 +53,7 @@
     padding-left: 0.7em;
 }
 #osplits .container{
-    position: relative;	
+    position: relative;    
 }
 #osplits .graph {
     position: absolute;
@@ -95,26 +95,57 @@
     color: rgba(0,0,0,0);
 }
 #osplits .ctrlid {
-	font-size: 9px;
-	color: #8B8B8B;
+    font-size: 9px;
+    color: #8B8B8B;
     font-weight: normal;
 }
 #osplits .club {
-	color: #8B8B8B;
-	font-weight: normal;
+    color: #8B8B8B;
+    font-weight: normal;
 }
 #osplits table:not(.restricted) tbody:nth-child(n).selected, #osplits table:not(.restricted) tbody:nth-child(n):hover.selected {
     background-color: #FFC984;
 }
-#osplits tbody:nth-child(n):hover {
+#osplits tbody:not(#ctrlRankingTBody):nth-child(n):hover {
     background-color: #FFE9CD;
 }
-#osplits tbody:nth-child(2n+1) {
+#osplits tbody:not(#ctrlRankingTBody):nth-child(2n+1) {
     background-color: #F1F1F1;
 }
-#osplits tbody:nth-child(2n) {
+#osplits tbody:not(#ctrlRankingTBody):nth-child(2n) {
     background-color: #white;
 }
-#osplits tbody tr:nth-child(2n) {
+#osplits tbody:not(#ctrlRankingTBody) tr:nth-child(2n) {
     color: #8B8B8B;
 }
+
+#ctrlRanking {
+    border-radius : 25px;
+    border : 10px #DDDDDD solid; 
+    padding : 10px;
+    position: fixed;
+    top : 20px;
+    z-index : 99;
+    background-color : #FFFFFF;
+    height : 500px;
+}
+
+#ctrlRanking tr:nth-child(2n+1) {
+    background-color: #F1F1F1;
+}
+#ctrlRanking tr:nth-child(2n) {
+    background-color: #white;
+}
+
+#ctrlRanking div {
+    width : 300px;
+    height : 400px;
+    display : block;
+    overflow-y : auto;
+}
+
+#titleCtrlRanking {
+    text-align : center;
+}
+
+

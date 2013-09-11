@@ -1,4 +1,4 @@
-'use strict';
+﻿'use strict';
 if (window.osplits) {
     console.log("O'Splits: already loaded");
 }
@@ -9,7 +9,7 @@ else {
     };
     var osplits = {};
     osplits.util = {
-        VALUE_MP : 100000000,                    //EDIT 
+        VALUE_MP : 100000000,
         VALUE_EMPTY : 100000001,
         str2sec: function(tString) {
             if (!tString) {
@@ -292,7 +292,7 @@ else {
             var time = osplits.parser.HEADLINE.time && osplits.parser.HEADLINE.time.extract(line1) || '';
 
             if (time.trim() === osplits.parser.LANG.pm) {
-                runner.rank = osplits.util.VALUE_MP + absoluteRank; //FIXME, EDIT
+                runner.rank = osplits.util.VALUE_MP + absoluteRank;
             }
 
             if (!runner.rank) {
@@ -360,6 +360,111 @@ else {
         return tmp.trim();
     },
     osplits.tables = {
+        initCtrlRanking : function() {
+            var ctrlRanking = document.createElement('div');
+            $(ctrlRanking).attr('id','ctrlRanking');
+            var W = 300;
+            var L = ($('body').get()[0].offsetWidth - W)/2;
+            $(ctrlRanking).css({ display : 'none', left : L });
+            
+            var buttonClose = document.createElement('button');
+            buttonClose.addEventListener('click',function(e) {
+                document.getElementById('ctrlRanking').style.display = 'none';
+            });
+            buttonClose.innerText = chrome.i18n.getMessage('closeButton');
+            ctrlRanking.appendChild(buttonClose);
+            
+            var title = document.createElement('p')
+            $(title).attr('id','titleCtrlRanking');
+            ctrlRanking.appendChild(title);
+            
+            var scrollable = document.createElement('div');
+            
+            var table = document.createElement('table');
+            
+            var thead = table.createTHead();
+            
+            var th = document.createElement('th');
+            th.innerText = chrome.i18n.getMessage('labelRank');
+            th.classList.add('right');
+            thead.appendChild(th);
+
+            th = document.createElement('th');
+            th.innerText = chrome.i18n.getMessage('labelName');
+            th.classList.add('left');
+            thead.appendChild(th);
+            
+            th = document.createElement('th');
+            th.innerText = chrome.i18n.getMessage('labelCategory');
+            th.classList.add('left');
+            thead.appendChild(th);
+            
+            th = document.createElement('th');
+            th.innerText = chrome.i18n.getMessage('labelTime');
+            th.classList.add('left');
+            thead.appendChild(th);
+            
+            var tbody = document.createElement('tbody');
+            $(tbody).attr('id','ctrlRankingTBody');
+            table.appendChild(tbody);
+            
+            scrollable.appendChild(table);
+            ctrlRanking.appendChild(scrollable);
+            
+            osplits.parser.OURDIV.appendChild(ctrlRanking);
+            
+        },
+        buildCtrlRanking : function(fromCtrl, toCtrl) {
+            var title = document.getElementById('titleCtrlRanking');
+            title.innerText = chrome.i18n.getMessage('titleCtrlRanking') + ' :\n' + fromCtrl + ' -> ' + toCtrl;
+            
+            var tbody = document.getElementById('ctrlRankingTBody');
+            $('tbody#ctrlRankingTBody tr').remove();
+            var query = 'SELECT r.id, r.name, r.club, r.category, t.legSec FROM time AS t, runner AS r WHERE t.runnerId = r.id AND t.fromCtrl = ? AND t.toCtrl = ? AND t.legSec < ? ORDER BY t.legSec, r.name';
+            osplits.webdb.db.readTransaction(function(tx) {
+                tx.executeSql(query, [fromCtrl, toCtrl, osplits.util.VALUE_MP], function(tx,result) {
+                var legPre, rankPre = undefined;
+                    for (var i = 1; i <= result.rows.length; i++) { 
+                        var line = result.rows.item(i-1);
+                        var time = line.legSec;
+                        var rank = i;
+                        if (time == legPre) {
+                            rank = rankPre;
+                        }
+                        var runner = {rank : rank, name : line.name, category : line.category , time : time};
+                        legPre = time;
+                        rankPre = rank;
+                        osplits.tables.buildRunnerForCtrlRanking(tbody,runner);
+                    }
+                });
+            });
+        },
+        buildRunnerForCtrlRanking : function(tbody, runner) {
+            var tr = document.createElement('tr');
+            
+            var td = document.createElement('td');
+            td.innerText = runner.rank;
+            tr.appendChild(td);
+            
+            var td = document.createElement('td');
+            td.innerText = runner.name;
+            tr.appendChild(td);
+            
+            var td = document.createElement('td');
+            td.innerText = runner.category;
+            tr.appendChild(td);
+            
+            var td = document.createElement('td');
+            td.innerText = osplits.util.sec2str(runner.time);
+            tr.appendChild(td);
+            
+            tbody.appendChild(tr);
+        },
+        displayCtrlRanking : function() {
+            var ctrlRanking = document.getElementById('ctrlRanking');
+            ctrlRanking.style.display = 'block';
+            
+        },
         onRunnerClicked : function(event) {
             var tbody = this;
             osplits.tables._onRunnerClicked(tbody);
@@ -402,32 +507,13 @@ else {
             });
             event.stopPropagation();
         },
-        // onControlClicked : function(event) {                //ICI
-            // var th = this;
-            // /^(\d+)/.exec(th.innerText);
-            // var numInCircuit = RegExp.$1;
-            // var table = th.parentElement.parentElement;
-            // var tbodies = $(table).find('tbody[data-runner-id]').get();
-            // var times = []
-            // for (var i = 0; i < tbodies.length ; i++) {
-                // times[i] = osplits.tables.getRunnerTimeOnThisControl(tbodies[i],numInCircuit);
-            // }
-            // for (var i = 0; i < tbodies.length ; i++) {
-                // var idJustAfter = -1;
-                // for (var j = 0; j < i; j++) {
-                    // if(times[j] > times[i] && (idJustAfter == -1 || times[j] < times[idJustAfter])) {
-                        // idJustAfter = j;
-                    // }
-                // }
-                // if (i != idJustAfter && idJustAfter != -1) {
-                    // $(tbodies[idJustAfter]).before(tbodies[i]);
-                // }
-            // }
-        // },
-        // getRunnerTimeOnThisControl : function(tbody, numInCircuit) {
-            // var td = $(tbody).find('tr[data-time="leg"] td[data-ctrl-num="' + numInCircuit + '"]').get()[0];
-            // return osplits.util.str2sec(td.innerText);
-        // },
+        onControlClicked : function(event) {
+            var th = this;
+            var fromCtrl = th.dataset['fromCtrl'];
+            var toCtrl = th.dataset['toCtrl'];
+            osplits.tables.buildCtrlRanking(fromCtrl,toCtrl);
+            osplits.tables.displayCtrlRanking();
+        },
         toggleRestricted: function(event) {
             var button = this;
             var table = $(button).parent().parent().find('table').get(0);
@@ -550,6 +636,8 @@ else {
                     th.innerHTML = ctrl.numInCircuit + '&nbsp;<span class="ctrlid">' + ctrl.toCtrl + '</span>';
                     th.classList.add('right');
                     th.classList.add('clickable');
+                    th.dataset['fromCtrl'] = ctrl.fromCtrl;
+                    th.dataset['toCtrl'] = ctrl.toCtrl;
                     th.addEventListener('click', osplits.tables.onControlClicked);
                     thead.appendChild(th);
                 }
@@ -594,7 +682,7 @@ else {
 
             th = document.createElement('th');
             var rank = runner.rank;
-            if (rank >= osplits.util.VALUE_MP) {                        //EDIT
+            if (rank >= osplits.util.VALUE_MP) {
                 th.innerText = chrome.i18n.getMessage('mp');
             } else {
                 th.innerText = runner.rank;
@@ -914,6 +1002,7 @@ else {
             break;            
         case 'showtables':
             osplits.tables.toggleDisplay();
+            osplits.tables.initCtrlRanking();
             break;
         }
 
