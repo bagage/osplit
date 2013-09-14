@@ -1,11 +1,11 @@
-#osplits {
+#osplits, #ctrlRanking {
     font-family: Verdana, sans-serif;
 }
-#osplits h1 {
+#osplits h1, #ctrlRanking h1 {
     font-size: 1.5em;
     margin: 1em 0 0.5em 1em;
 }
-#osplits table {
+#osplits table, #ctrlRanking table {
     background: white;
     border: none;
     border-collapse: collapse;
@@ -13,7 +13,7 @@
     overflow-x: scroll; 
 }
 
-#osplits button {
+#osplits button, #ctrlRanking button {
     border-style:none;
     background-color: #EBB166;
     text-decoration: none;
@@ -31,7 +31,7 @@
 #osplits .clickable:hover {
     text-decoration: underline;
 }
-#osplits button:hover {
+#osplits button:hover, #ctrlRanking button:hover {
     background-color: #C4975E;
 }
 #osplits caption {
@@ -106,16 +106,16 @@
 #osplits table:not(.restricted) tbody:nth-child(n).selected, #osplits table:not(.restricted) tbody:nth-child(n):hover.selected {
     background-color: #FFC984;
 }
-#osplits tbody:not(#ctrlRankingTBody):nth-child(n):hover {
+#osplits tbody:nth-child(n):hover {
     background-color: #FFE9CD;
 }
-#osplits tbody:not(#ctrlRankingTBody):nth-child(2n+1) {
+#osplits tbody:nth-child(2n+1) {
     background-color: #F1F1F1;
 }
-#osplits tbody:not(#ctrlRankingTBody):nth-child(2n) {
+#osplits tbody:nth-child(2n) {
     background-color: #white;
 }
-#osplits tbody:not(#ctrlRankingTBody) tr:nth-child(2n) {
+#osplits tbody tr:nth-child(2n) {
     color: #8B8B8B;
 }
 

@@ -374,7 +374,7 @@ else {
             buttonClose.innerText = chrome.i18n.getMessage('closeButton');
             ctrlRanking.appendChild(buttonClose);
             
-            var title = document.createElement('p')
+            var title = document.createElement('p');
             $(title).attr('id','titleCtrlRanking');
             ctrlRanking.appendChild(title);
             
@@ -411,12 +411,12 @@ else {
             scrollable.appendChild(table);
             ctrlRanking.appendChild(scrollable);
             
-            osplits.parser.OURDIV.appendChild(ctrlRanking);
+            document.body.appendChild(ctrlRanking);
             
         },
         buildCtrlRanking : function(fromCtrl, toCtrl) {
             var title = document.getElementById('titleCtrlRanking');
-            title.innerText = chrome.i18n.getMessage('titleCtrlRanking') + ' :\n' + fromCtrl + ' -> ' + toCtrl;
+            title.innerText = chrome.i18n.getMessage('titleCtrlRanking') + '\n' + fromCtrl + ' -> ' + toCtrl;
             
             var tbody = document.getElementById('ctrlRankingTBody');
             $('tbody#ctrlRankingTBody tr').remove();
