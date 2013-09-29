@@ -79,6 +79,44 @@ else {
         storeCircuitTxn: function(number, circuit) {
             var noop = function(){};
             var storeCircuit = function(tx) {
+                tx.executeSql("INSERT INTO circuit(number, description, ctrlCount) VALUES (?,?,?)", [number, circuit.description, circuit.controls.length],
+                        function(txdummy, result){
+                            for(var i=0; i<circuit.rankedRunners.length;i++) {
+                                storeRunner(tx, result.insertId, circuit.rankedRunners[i]);
+                            }
+                        }, osplits.webdb.onError);
+            };
+            var storeRunner = function(tx, circuitId, runner) {
+                tx.executeSql("INSERT INTO runner(circuitId, rank, name, club, category) VALUES (?,?,?,?,?)", [circuitId, runner.rank, runner.firstname + ' ' + runner.lastname, runner.club, runner.category],
+                        function(txdummy, result){
+                            var fromCtrl = 'D';
+                            for(var i=0; i<circuit.controls.length;i++) {
+                                var cumSec = runner.cumulatedTimes[i];
+                                var legSec = runner.cumulatedTimes[i];
+                                if (i > 0) {
+                                    legSec -= runner.cumulatedTimes[i-1]; // FIXME: missing control
+                                }
+                                var toCtrl = '' + circuit.controls[i];
+                                var numInCircuit = i + 1;
+                                storeTime(tx, circuitId, result.insertId, numInCircuit, fromCtrl, toCtrl, legSec, cumSec);
+                                fromCtrl = toCtrl;
+                            }
+                            var cumSec = runner.cumulatedTimes[circuit.controls.length];
+                            var legSec = cumSec - runner.cumulatedTimes[circuit.controls.length - 1];
+                            storeTime(tx, circuitId, result.insertId, 'A', fromCtrl, 'A', legSec, cumSec);
+                        }, osplits.webdb.onError);                
+            };
+            var storeTime = function(tx, circuitId, runnerId, numInCircuit, fromCtrl, toCtrl, legSec, cumSec) {
+                tx.executeSql("INSERT INTO time(circuitId, runnerId, numInCircuit, fromCtrl, toCtrl, legSec, cumSec) VALUES (?,?,?,?,?,?,?)",
+                        [circuitId, runnerId, numInCircuit, fromCtrl, toCtrl, legSec, cumSec], noop, osplits.webdb.onError);
+            };
+            osplits.webdb.db.transaction(function(tx) {
+                storeCircuit(tx);
+            });
+        },
+        storeCircuitTxnV1: function(number, circuit) {
+            var noop = function(){};
+            var storeCircuit = function(tx) {
                 tx.executeSql("INSERT INTO circuit(number, description, ctrlCount) VALUES (?,?,?)", [number, circuit.description, circuit.controls.length - 1],
                         function(txdummy, result){
                             for(var i=0; i<circuit.runners.length;i++) {
@@ -107,7 +145,7 @@ else {
             osplits.webdb.db.transaction(function(tx) {
                 storeCircuit(tx);
             });
-        }
+        }       
     };
     osplits.webdb.open();
     osplits.webdb.createTables();
@@ -132,6 +170,12 @@ else {
             this.to = to;
         },
         storeJson: function(jsonResults) {
+            for(var circuitNum=0; circuitNum < jsonResults.circuits.length; circuitNum++) {
+                osplits.webdb.storeCircuitTxn(circuitNum, jsonResults.circuits[circuitNum]);
+            }
+            return circuitNum;            
+        },
+        storeJsonV1: function(jsonResults) {
             for(var circuitNum=0; circuitNum < jsonResults.circuits.length; circuitNum++) {
                 var fromCircuit = jsonResults.circuits[circuitNum];
                 if (fromCircuit.rankedRunners.length > 0) {
@@ -164,7 +208,7 @@ else {
                         }
                         toCircuit.runners.push(toRunner);
                     }
-                    osplits.webdb.storeCircuitTxn(circuitNum, toCircuit);
+                    osplits.webdb.storeCircuitTxnV1(circuitNum, toCircuit);
                 }
             }
             return circuitNum;
@@ -210,7 +254,7 @@ else {
                 var circuit = osplits.parser.getOneCircuit(lines);
                 if (circuit){
                     found++;
-                    osplits.webdb.storeCircuitTxn(found, circuit);
+                    osplits.webdb.storeCircuitTxnV1(found, circuit);
                 }
             }
             return found;
@@ -1020,6 +1064,20 @@ else {
     };
 
     window.osplits = osplits;
+    window.addEventListener("message", function(event) {
+        // We only accept messages from ourselves
+        if (event.source != window)
+          return;
+        var msg = event.data;
+        if(msg.cmd==='jsonDataReady') {
+            osplits.parser.BACKUP = document.getElementById('gecoResults');
+            osplits.parser.PARENT = osplits.parser.BACKUP.parentElement;
+            osplits.parser.LANG = osplits.parser.LANGS.fr;
+            var found = osplits.parser.storeJson(msg.data);
+            console.log("O'Splits: Received JSON & found " + found + " circuits");
+            chrome.extension.sendMessage({cmd:'parseok', count:found });
+        }
+    });
     chrome.runtime.onMessage.addListener(function(msg) {
         jQuery.fn.reverse = jQuery.fn.reverse || [].reverse;
         switch (msg.cmd) {
@@ -1036,8 +1094,13 @@ else {
             osplits.parser.BACKUP = document.getElementById('gecoResults');
             osplits.parser.PARENT = osplits.parser.BACKUP.parentElement;
             osplits.parser.LANG = osplits.parser.LANGS.fr;
-
-            var found = osplits.parser.storeJson(window.gecoOrienteeringResults);
+            var found = 0;
+            if(window.gecoOrienteeringResults.version === 1) {
+                found = osplits.parser.storeJsonV1(window.gecoOrienteeringResults);
+            }
+            else {
+                found = osplits.parser.storeJson(window.gecoOrienteeringResults);
+            }
             console.log("O'Splits: Read JSON & found " + found + " circuits");
             chrome.extension.sendMessage({cmd:'parseok', count:found });
             break;            
