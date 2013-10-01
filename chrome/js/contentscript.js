@@ -610,11 +610,18 @@ else {
             if (osplits.parser.OURDIV) {
                 console.log("O'Splits: reverting to original");
                 osplits.parser.PARENT.removeChild(osplits.parser.OURDIV);
+                for (var i = 0; i < osplits.parser.BACKUP_STYLES.length; i++) {
+                    document.head.appendChild(osplits.parser.BACKUP_STYLES[i]);
+                }                
                 osplits.parser.PARENT.appendChild(osplits.parser.BACKUP);
                 osplits.parser.OURDIV = null;
             } else {
                 console.log("O'Splits: showing tables");
                 osplits.parser.PARENT.removeChild(osplits.parser.BACKUP);
+                osplits.parser.BACKUP_STYLES = document.head.getElementsByTagName('style');
+                for (var i = 0; i < osplits.parser.BACKUP_STYLES.length; i++) {
+                    document.head.removeChild(osplits.parser.BACKUP_STYLES[i]);
+                }
                 osplits.tables.generateTables();
             }
         },
