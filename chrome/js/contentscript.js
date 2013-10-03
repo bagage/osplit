@@ -9,11 +9,10 @@ else {
     };
     var osplits = {};
     osplits.util = {
-        VALUE_MP : 100000000,
-        VALUE_EMPTY : 100000001,
+        VALUE_MP : 90000000, // this value is from Geco!
         str2sec: function(tString) {
             if (!tString) {
-                return osplits.util.VALUE_EMPTY;
+                return osplits.util.VALUE_MP;
             }
             else if (tString === '-----') {
                 return osplits.util.VALUE_MP;
@@ -29,10 +28,7 @@ else {
             return sec;
         },
         sec2str: function(tSec) {
-            if (tSec === osplits.util.VALUE_EMPTY) {
-                return '';
-            }
-            else if (tSec === osplits.util.VALUE_MP) {
+            if (tSec === osplits.util.VALUE_MP) {
                 return '-----';
             }
             var bits = [];
@@ -84,25 +80,39 @@ else {
                             for(var i=0; i<circuit.rankedRunners.length;i++) {
                                 storeRunner(tx, result.insertId, circuit.rankedRunners[i]);
                             }
+                            for(var i=0; i<circuit.unrankedRunners.length;i++) {
+                                var r = circuit.unrankedRunners[i];
+                                if (!r.rank) r.rank = r.status;
+                                storeRunner(tx, result.insertId, r);
+                            }
                         }, osplits.webdb.onError);
             };
             var storeRunner = function(tx, circuitId, runner) {
                 tx.executeSql("INSERT INTO runner(circuitId, rank, name, club, category) VALUES (?,?,?,?,?)", [circuitId, runner.rank, runner.firstname + ' ' + runner.lastname, runner.club, runner.category],
                         function(txdummy, result){
+                            var _getLegSec = function(cumTimes, index) {
+                                var legSec = cumTimes[index];
+                                if (legSec != osplits.util.VALUE_MP) {
+                                    for (var j = index; j > 0; j--) {
+                                        if (cumTimes[j-1] != osplits.util.VALUE_MP) {
+                                            legSec -= cumTimes[j-1];
+                                            break;
+                                        }
+                                    }
+                                }
+                                return legSec;
+                            };
                             var fromCtrl = 'D';
                             for(var i=0; i<circuit.controls.length;i++) {
                                 var cumSec = runner.cumulatedTimes[i];
-                                var legSec = runner.cumulatedTimes[i];
-                                if (i > 0) {
-                                    legSec -= runner.cumulatedTimes[i-1]; // FIXME: missing control
-                                }
+                                var legSec = _getLegSec(runner.cumulatedTimes, i);
                                 var toCtrl = '' + circuit.controls[i];
                                 var numInCircuit = i + 1;
                                 storeTime(tx, circuitId, result.insertId, numInCircuit, fromCtrl, toCtrl, legSec, cumSec);
                                 fromCtrl = toCtrl;
                             }
                             var cumSec = runner.cumulatedTimes[circuit.controls.length];
-                            var legSec = cumSec - runner.cumulatedTimes[circuit.controls.length - 1];
+                            var legSec = _getLegSec(runner.cumulatedTimes, circuit.controls.length);
                             storeTime(tx, circuitId, result.insertId, 'A', fromCtrl, 'A', legSec, cumSec);
                         }, osplits.webdb.onError);                
             };
@@ -610,17 +620,15 @@ else {
             if (osplits.parser.OURDIV) {
                 console.log("O'Splits: reverting to original");
                 osplits.parser.PARENT.removeChild(osplits.parser.OURDIV);
-                for (var i = 0; i < osplits.parser.BACKUP_STYLES.length; i++) {
-                    document.head.appendChild(osplits.parser.BACKUP_STYLES[i]);
-                }                
-                osplits.parser.PARENT.appendChild(osplits.parser.BACKUP);
                 osplits.parser.OURDIV = null;
+                window.location.reload();
             } else {
                 console.log("O'Splits: showing tables");
                 osplits.parser.PARENT.removeChild(osplits.parser.BACKUP);
-                osplits.parser.BACKUP_STYLES = document.head.getElementsByTagName('style');
-                for (var i = 0; i < osplits.parser.BACKUP_STYLES.length; i++) {
-                    document.head.removeChild(osplits.parser.BACKUP_STYLES[i]);
+                osplits.parser.BACKUP = null;
+                var styles = document.head.getElementsByTagName('style');
+                for (var i = 0; i < styles.length; i++) {
+                    document.head.removeChild(styles[i]);
                 }
                 osplits.tables.generateTables();
             }
@@ -1076,6 +1084,7 @@ else {
         if (event.source != window)
           return;
         var msg = event.data;
+        console.log("O'Splits: contentscript receiving window msg:" + msg.cmd);
         if(msg.cmd==='jsonDataReady') {
             osplits.parser.BACKUP = document.getElementById('gecoResults');
             osplits.parser.PARENT = osplits.parser.BACKUP.parentElement;
@@ -1087,6 +1096,7 @@ else {
     });
     chrome.runtime.onMessage.addListener(function(msg) {
         jQuery.fn.reverse = jQuery.fn.reverse || [].reverse;
+        console.log("O'Splits: contentscript receiving chrome msg:" + msg.cmd);
         switch (msg.cmd) {
         case 'parse':
             osplits.parser.BACKUP = document.getElementsByTagName('pre')[0];
@@ -1111,6 +1121,10 @@ else {
             console.log("O'Splits: Read JSON & found " + found + " circuits");
             chrome.extension.sendMessage({cmd:'parseok', count:found });
             break;            
+        case 'loadJsonData':
+            // This is the new Geco scheme => send to HTML page
+            window.postMessage({cmd:'loadJsonData'}, '*');
+            break;
         case 'showtables':
             osplits.tables.toggleDisplay();
             osplits.tables.initCtrlRanking();

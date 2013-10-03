@@ -10,7 +10,7 @@ chrome.pageAction.onClicked.addListener(function(tab) {
 
 function onMessage(msg, sender) {
     var tabid = sender.tab.id;
-    
+    console.log("O'Splits: background receiving window msg:" + msg.cmd);
     switch (msg.cmd) {
     case 'oedetected':
         console.log("O'Splits: OE document detected, injecting script");
@@ -25,12 +25,18 @@ function onMessage(msg, sender) {
         console.log("O'Splits: Geco detected, injecting script");
         chrome.tabs.executeScript(tabid, {file:'/js/jquery-2.0.0.min.js'}, function() {
             chrome.tabs.executeScript(tabid, {file:'/js/contentscript.js'}, function() {
-                chrome.tabs.sendMessage(tabid, {cmd:'readJson'});
+                if (msg.old) {
+                    chrome.tabs.sendMessage(tabid, {cmd:'readJson'});
+                }
+                else {
+                    chrome.tabs.sendMessage(tabid, {cmd:'loadJsonData'});
+                }
+
             });
         });
         break;
     case 'parseok':
-        console.log("O'Splits: OE document detected with " + msg.count + " circuits");
+        console.log("O'Splits: document detected with " + msg.count + " circuits");
         if (msg.count) {
             chrome.tabs.insertCSS(tabid, {
                 file : '/stylesheets/splitochrome.css'
