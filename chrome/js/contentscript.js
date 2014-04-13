@@ -374,29 +374,6 @@ else {
                 lines.unshift(line);
             }
             
-//            var match, indices = [];
-//            var regxp = /-----/g;
-//            while((match = regxp.exec(totals))!= null) {
-//                indices.push(match.index);
-//            }
-//            var replaced = '', pos=0;
-//            var pmMarker = '-----';
-//            if (indices.length > 0) {
-//                for ( var i = 0; i < indices.length; i++) {
-//                    replaced += (legs.slice(pos, indices[i]) || ' ');
-//                    replaced += pmMarker;
-//                    pos = indices[i] + pmMarker.length;
-//                }
-//            }
-//            replaced += legs.slice(pos);
-//            if (replaced !== legs) {
-//                console.log("Read runner " + runner.name);
-//                console.log("    TOTAL:" + totals);
-//                console.log("    BEFORE:" + legs);
-//                console.log("    AFTER:" + replaced);
-//                legs = replaced;
-//            }
-            
             runner.cumTimes = totals.trim().split(/\s+/);
             runner.legTimes = legs.trim().split(/\s+/);
 
@@ -854,9 +831,8 @@ else {
                 var w = 0;
                 for (var rid in runnerPlots) {
                     if (runnerPlots.hasOwnProperty(rid)) {
-                        var plot = runnerPlots[rid];
                         var total = totalTimes[rid];
-                        if (plot.shown && total > w && total < osplits.util.VALUE_MP) {
+                        if (total > w && total < osplits.util.VALUE_MP) {
                             w = total;
                         }
                     }
@@ -891,7 +867,7 @@ else {
                             ctx.stroke();
                             ctx.beginPath();
                             ctx.moveTo(x, y);
-                            ctx.setLineDash([5]);
+                            ctx.setLineDash([2,4]);
                         }
                         while (j < timeRows.length - 1 && cumSec >= osplits.util.VALUE_MP) {
                             j++;
@@ -974,61 +950,60 @@ else {
                     });
                 });
             };
-
+            var deletePlot = function(runnerId) {
+                if (runnerPlots.hasOwnProperty(runnerId)) {
+                    var plot = runnerPlots[runnerId];
+                    if (plot.canvas) {
+                        graphLayers.removeChild(plot.canvas);
+                    }
+                    delete runnerPlots[runnerId];
+                }
+            };
             return {
                 rescaleAllPlots : function() {
                     var graphObj = this;
                     // Clear first
-                    for (var rid in runnerPlots) {
-                        if (runnerPlots.hasOwnProperty(rid)) {
-                            var plot = runnerPlots[rid];
-                            if (plot.shown) {
-                                graphLayers.removeChild(plot.canvas);
-                            }
-                        }
+                    for (var runnerId in runnerPlots) {
+                        deletePlot(runnerId);
                     }
-                    runnerPlots = {};
-                    // Reverse the runner to scale once and for all rather than for each selected runner
+                    // Reverse the runner to scale fewer times than for each selected runner
                     $(table).find('tbody.selected').reverse().each(function(index, elem) {
                         var runnerId = elem.dataset['runnerId'];
                         graphObj.showRunner(runnerId);
                     });
                 },
                 hideRunner: function(runnerId){
-                    var plot = runnerPlots[runnerId];
-                    if (plot && plot.shown) {
-                        graphLayers.removeChild(plot.canvas);
-                        plot.shown = false;
-                        if (totalTimes[runnerId] === worstTotal) {
-                            delete runnerPlots[runnerId];
-                            // compute new worst and then clear and repaint
-                            worstTotal = getWorst();
-                            this.rescaleAllPlots();
-                        }
-                    } 
+                    deletePlot(runnerId);
+                    if (totalTimes[runnerId] === worstTotal) {
+                        // compute new worst and then clear and repaint
+                        worstTotal = getWorst();
+                        this.rescaleAllPlots();
+                    }
                 },
                 showRunner: function(runnerId){
-                    var _showCanvas = function(canvas) {
-                        runnerPlots[runnerId] = {canvas: canvas, shown:true, worst:worstTotal};
-                        graphLayers.appendChild(canvas);
-                    };
-                    var totalTime = totalTimes[runnerId];
-                    if (totalTime < osplits.util.VALUE_MP && worstTotal < totalTime) {
-                        // compute new worst and repaint only if necessary
-                        var rescale = worstTotal > 0;
-                        worstTotal = totalTime;
-                        if (rescale) {
-                            this.rescaleAllPlots();
-                        }
+                    var plot = runnerPlots[runnerId];
+                    if (!plot) {
+                        plot = {canvas: null};
+                        runnerPlots[runnerId] = plot;
                     }
-                     else {
-                        var plot = runnerPlots[runnerId];
-                        if (!plot) {
-                            buildRunnerCanvas(runnerId, _showCanvas);
-                        }
-                        else if (!plot.shown) {
-                            _showCanvas(plot.canvas);
-                        }
+                    var totalTime = totalTimes[runnerId];
+                    if (totalTime < osplits.util.VALUE_MP && totalTime > worstTotal) {
+                        worstTotal = totalTime;
+                        this.rescaleAllPlots();
+                    }
+                    else {
+                        var _showCanvas = function(canvas) {
+                            // Because buildRunnerCanvas runs SQL, it can
+                            // call us after another showRunner() is called,
+                            // possibly rescaling... which deletes our entry
+                            // in runnerPlots, so check that this was not
+                            // the case by keeping a closure on 'plot'
+                            if (runnerPlots[runnerId] === plot) {
+                                plot.canvas = canvas;
+                                graphLayers.appendChild(canvas);
+                            }
+                        };
+                        buildRunnerCanvas(runnerId, _showCanvas);
                     }
                 },
                 hide : function() {
