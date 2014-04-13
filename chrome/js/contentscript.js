@@ -856,7 +856,7 @@ else {
                     if (runnerPlots.hasOwnProperty(rid)) {
                         var plot = runnerPlots[rid];
                         var total = totalTimes[rid];
-                        if (plot.shown && total > w) {
+                        if (plot.shown && total > w && total < osplits.util.VALUE_MP) {
                             w = total;
                         }
                     }
@@ -877,56 +877,40 @@ else {
                 return parseInt(s * osplits.graph.height / (worstTotal - bestTotal));
             };
             
-            var dashedLine = function (x1, y1, x2, y2, ctx) {
-                var dashLen = 3;
-
-                ctx.moveTo(x1, y1);
-
-                var dX = x2 - x1;
-                var dY = y2 - y1;
-                var dashes = Math.floor(Math.sqrt(dX * dX + dY * dY) / dashLen);
-                var dashX = dX / dashes;
-                var dashY = dY / dashes;
-                
-                var i;
-                for (i = 0; i < dashes ; i++) {
-                    x1 += dashX;
-                    y1 += dashY;
-                    if (i % 2 == 0)
-                        ctx.moveTo(x1, y1);
-                    else
-                        ctx.lineTo(x1, y1);
-                }
-                if (i % 2 == 0)
-                    ctx.moveTo(x2, y2);
-                else
-                    ctx.lineTo(x2, y2);
-            };
-            
             var plotRunner = function(runnerId, ctx, timeRows) {
                 ctx.strokeStyle = osplits.graph.getColor(runnerId);
                 ctx.lineWidth = 2;
+                var x=0,y=0, dashed=false;
                 ctx.beginPath();
-                ctx.moveTo(0, 0);
-                var isPreMp = false;
-                var preX, preY = 0;
+                ctx.moveTo(x, y);
                 for (var j = 0; j < timeRows.length; j++) {
                     var cumSec = timeRows.item(j).cumSec;
                     if (cumSec >= osplits.util.VALUE_MP) {
-                        isPreMp = true;
-                    } else {
-                        var delta = cumSec - bestCumSec[j];
-                        var x = xAxis[j];
-                        var y = seconds2y(delta);
-                        
-                        if (!isPreMp) {
-                            ctx.lineTo(x, y);
-                        } else {
-                            dashedLine(preX, preY, x, y, ctx);
+                        dashed=true;
+                        if ( x > 0 ) {
+                            ctx.stroke();
+                            ctx.beginPath();
+                            ctx.moveTo(x, y);
+                            ctx.setLineDash([5]);
                         }
-                        preX = x;
-                        preY = y;
-                        isPreMp = false;
+                        while (j < timeRows.length - 1 && cumSec >= osplits.util.VALUE_MP) {
+                            j++;
+                            cumSec = timeRows.item(j).cumSec;
+                        }
+                    }
+                    else if (dashed){
+                        dashed=false;
+                        ctx.stroke();
+                        ctx.beginPath();
+                        ctx.moveTo(x, y);
+                        ctx.setLineDash([]);
+                    }
+                    if ( cumSec < osplits.util.VALUE_MP ) {
+                        // Check for the case where even the A is not punched
+                        var delta = cumSec - bestCumSec[j];
+                        x = xAxis[j];
+                        y = seconds2y(delta);
+                        ctx.lineTo(x, y);
                     }
                 }
                 ctx.stroke();
@@ -1029,10 +1013,13 @@ else {
                         graphLayers.appendChild(canvas);
                     };
                     var totalTime = totalTimes[runnerId];
-                    if (worstTotal < totalTime) {
-                        // compute new worst and repaint
+                    if (totalTime < osplits.util.VALUE_MP && worstTotal < totalTime) {
+                        // compute new worst and repaint only if necessary
+                        var rescale = worstTotal > 0;
                         worstTotal = totalTime;
-                        this.rescaleAllPlots();
+                        if (rescale) {
+                            this.rescaleAllPlots();
+                        }
                     }
                      else {
                         var plot = runnerPlots[runnerId];

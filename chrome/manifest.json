@@ -2,7 +2,8 @@
   "manifest_version": 2,
   "default_locale": "en",
   "name": "__MSG_extensionFullName__",
-  "version": "0.8",
+  "short_name": "__MSG_extensionFullName__",
+  "version": "0.10",
   "description": "__MSG_extensionDesc__",
   "icons": {
       "16": "/icon/icon16.png",
@@ -20,7 +21,7 @@
   "content_scripts": [
       {
           "matches" : [ "http://*/*", "https://*/*" ],
-          "js" : [ "/js/detector.js"],
+          "js" : [ "/js/detector.js" ],
           "run_at" : "document_idle",
           "all_frames" : false
       }
