@@ -323,7 +323,7 @@ else {
             do {
                 runner = osplits.parser.getOneRunner(circuit.controlLinesCount, lines, ++absRank);
                 if (runner) {
-                    console.log('Read ' + runner.name);
+//                    console.log('Read ' + runner.name); // DO NOT LEAVE THIS AS IT TAKES AGES TO RUN
                     circuit.runners.push(runner);
                 }
             } while (runner);
