@@ -1,16 +1,24 @@
+/**
+  O'Splits - Orienteering Results Viewer
+  
+  Copyright (C) 2013 by Jan Vorwerk <jan.vorwerk @@ angexis dot com>
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 var regex = /\w\w20\d\d © Stephan Krämer 20\d\d/;
 var gecoDataUrl = document.documentElement.getAttribute('data-gecodatajs');
 if (gecoDataUrl) {
-////    chrome.extension.sendMessage({cmd:'geconewdetected', gecoDataUrl:gecoDataUrl});
-//    window.addEventListener("message", function(event) {
-//        // We only accept messages from ourselves
-//        if (event.source != window)
-//          return;
-//        if(event.data.cmd==='jsonDataReady'){
-//            window.gecoOrienteeringResults = event.data.data;
-//            chrome.extension.sendMessage({cmd:'gecodetected'});
-//        }
-//    });
     chrome.extension.sendMessage({cmd:'gecodetected'});
 }
 else {
