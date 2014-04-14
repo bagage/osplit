@@ -246,8 +246,8 @@ else {
             osplits.parser.PARENT = osplits.parser.BACKUP.parentElement;
             osplits.parser.LANG = osplits.parser.LANGS.fr;
             var fullText = osplits.parser.BACKUP.innerText;
-            var lines = fullText.split(/\n/);
-            var head = lines.shift();
+            var circuits = fullText.split(/\n{3}/); // all circuits are (hopefully) separated by 3 blank lines 
+            var head = circuits.shift();
             var found = 0;
             var extractLeftAligned = function(tt){
                 var from = head.indexOf(tt);
@@ -277,12 +277,15 @@ else {
             osplits.parser.HEADLINE.time = extractRightAligned(osplits.parser.LANG.time, '3:59:59'.length);
             osplits.parser.HEADLINE.data = new osplits.parser.Extractor(osplits.parser.HEADLINE.time.to + 1);
 
-            while (lines.length > 0) {
-                osplits.parser.dropNonCircuit(lines);
-                var circuit = osplits.parser.getOneCircuit(lines);
-                if (circuit){
-                    found++;
-                    osplits.webdb.storeCircuitTxnV1(found, circuit);
+            for(var i=0; i<circuits.length; i++) {
+                var lines = circuits[i].split(/\n/);
+                while (lines.length > 0) {
+//                    osplits.parser.dropNonCircuit(lines);
+                    var circuit = osplits.parser.getOneCircuit(lines);
+                    if (circuit){
+                        found++;
+                        osplits.webdb.storeCircuitTxnV1(found, circuit);
+                    }
                 }
             }
             return found;
@@ -299,7 +302,14 @@ else {
         },
         getOneCircuit : function(lines) {
             var line;
+            var _skipEmptyLines = function(){
+                do {
+                    line = lines.shift();
+                } while (lines.length > 0 && !line);
+                lines.unshift(line);
+            };
             var circuit = {};
+            _skipEmptyLines();
             circuit.description = lines.shift();
             circuit.controls = [];
             circuit.runners = [];
@@ -331,11 +341,7 @@ else {
                 n : 'A',
                 id : 'A'
             });
-            // skip empty line(s)
-            do {
-                line = lines.shift();
-            } while (lines.length > 0 && !line);
-            lines.unshift(line);
+            _skipEmptyLines();
             // Read runners
             var runner, absRank = 0;
             do {
