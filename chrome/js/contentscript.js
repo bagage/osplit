@@ -191,7 +191,6 @@ else {
             }
         },
         LANG:undefined,
-        RE_CIRCUIT : /^\S+/,
         HEADLINE : {},
         Extractor: function(from,to){
             this.from = from;
@@ -280,7 +279,6 @@ else {
             for(var i=0; i<circuits.length; i++) {
                 var lines = circuits[i].split(/\n/);
                 while (lines.length > 0) {
-//                    osplits.parser.dropNonCircuit(lines);
                     var circuit = osplits.parser.getOneCircuit(lines);
                     if (circuit){
                         found++;
@@ -289,16 +287,6 @@ else {
                 }
             }
             return found;
-        },
-
-        dropNonCircuit : function(lines) {
-            var line;
-            do {
-                line = lines.shift();
-            } while (lines.length > 0 && !line.match(osplits.parser.RE_CIRCUIT));
-            if (lines.length > 0) {
-                lines.unshift(line);
-            }
         },
         getOneCircuit : function(lines) {
             var line;
@@ -334,7 +322,6 @@ else {
             }
             if (circuit.controls.length === 0){
                 console.log('Not a split times circuit: ' + circuit.description);
-                osplits.parser.dropNonCircuit(lines);
                 return undefined;
             }
             circuit.controls.push({
@@ -393,7 +380,7 @@ else {
             }
             do {
                 line = lines.shift();
-            } while(lines.length > 0 && line && !line.match(osplits.parser.RE_CIRCUIT) && !osplits.parser.HEADLINE.time.extract(line))
+            } while(lines.length > 0 && line && !osplits.parser.HEADLINE.time.extract(line))
             if (line) {
                 lines.unshift(line);
             }
