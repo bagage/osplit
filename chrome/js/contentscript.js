@@ -349,6 +349,9 @@ else {
                 }
             }
             var line2 = lines.shift();
+            if (!line2) {
+                return undefined;
+            }
             var runner = {};
             runner.rank = osplits.parser.HEADLINE.rank && osplits.parser.HEADLINE.rank.extract(line1) || '';
             runner.name = osplits.parser.HEADLINE.name && osplits.parser.HEADLINE.name.extract(line1) || '';
