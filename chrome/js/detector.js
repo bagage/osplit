@@ -19,7 +19,7 @@
 var regex = /\w\w20\d\d © Stephan Krämer 20\d\d/;
 var gecoDataUrl = document.documentElement.getAttribute('data-gecodatajs');
 if (gecoDataUrl) {
-    chrome.extension.sendMessage({cmd:'gecodetected'});
+    chrome.extension.sendMessage({cmd:'gecodetected', val:gecoDataUrl});
 }
 else {
     var scriptTag = document.getElementById('gecoOrienteeringResults');

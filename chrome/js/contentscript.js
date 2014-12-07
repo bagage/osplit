@@ -1098,8 +1098,15 @@ else {
             chrome.extension.sendMessage({cmd:'parseok', count:found });
             break;            
         case 'loadJsonData':
-            // This is the new Geco scheme => send to HTML page
+            // This is the 2nd Geco scheme => send to HTML page
             window.postMessage({cmd:'loadJsonData'}, '*');
+            break;
+        case 'loadJsonDataV3':
+            // This is the 3rd Geco scheme => directly load the JS
+            var s = document.createElement("script");
+            s.type = "text/javascript";
+            s.src = window.location.pathname.substring(location.pathname.lastIndexOf('/')+1, location.pathname.lastIndexOf('.')) + '.js'
+            document.body.appendChild(s);
             break;
         case 'showtables':
             osplits.tables.toggleDisplay();

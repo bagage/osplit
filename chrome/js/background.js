@@ -46,6 +46,9 @@ function onMessage(msg, sender) {
                 if (msg.old) {
                     chrome.tabs.sendMessage(tabid, {cmd:'readJson'});
                 }
+                else if (msg.val === 'v3') {
+                    chrome.tabs.sendMessage(tabid, {cmd:'loadJsonDataV3'});
+                } 
                 else {
                     chrome.tabs.sendMessage(tabid, {cmd:'loadJsonData'});
                 }
