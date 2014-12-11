@@ -822,6 +822,7 @@ else {
     osplits.graph = {
         width : 1000,
         height : 500,
+        yAxisWidth : 0,
         circuits : {},
         getColor : function(i) {
             var hue = [ 0, 40, 110, 190, 240, 300 ];
@@ -859,7 +860,10 @@ else {
             graphLayers.appendChild(backgroundCanvas);
             backgroundCanvas.width = osplits.graph.width;
             backgroundCanvas.height = osplits.graph.height;
-            var ctx = backgroundCanvas.getContext('2d');
+            var backgroundCtx = backgroundCanvas.getContext('2d');
+            backgroundCtx.font = '13pt';
+            backgroundCtx.textAlign = 'right';
+            osplits.graph.yAxisWidth = backgroundCtx.measureText('100:59').width;
             var seconds2x = function(s) {
                 return parseInt(s * osplits.graph.width / bestTotal);
             };
@@ -904,6 +908,20 @@ else {
                     }
                 }
                 ctx.stroke();
+                var total = timeRows.item(timeRows.length-1).cumSec;
+                if ( total <  osplits.util.VALUE_MP ) {
+                    var cumLostTotalSec = total-bestTotal;
+                    var cumLostMn = (cumLostTotalSec/60) << 0;
+                    var cumLostSec = cumLostTotalSec%60;
+                    var lostText = '' + cumLostMn + ":" + (cumLostSec < 10 ? '0' : '') + cumLostSec;
+                    ctx.font = '13pt';
+                    ctx.textAlign = 'left';
+                    ctx.fillStyle = '#0A0A0A';
+                    x = osplits.graph.width;
+                    y = seconds2y(cumLostTotalSec);
+                    ctx.fillText(lostText, x, y);
+                }
+                
             };
             osplits.webdb.db.readTransaction(function(tx) {
                 tx.executeSql("SELECT runnerId, cumSec FROM time WHERE circuitId = ? AND toCtrl = 'A';",
@@ -926,16 +944,14 @@ else {
                                     for (var i = 0; i < result.rows.length; i++) {
                                         var t = result.rows.item(i);
                                         var w = seconds2x(t.best);
-                                        ctx.fillStyle = i % 2 ? '#F1F1F1' : '#E5E5E5';
-                                        ctx.fillRect(previous, 0, w, osplits.graph.height);
+                                        backgroundCtx.fillStyle = i % 2 ? '#F1F1F1' : '#E5E5E5';
+                                        backgroundCtx.fillRect(previous, 0, w, osplits.graph.height);
                                         previous += w;
                                         
                                         // label
                                         var label = '' + t.num;
-                                        ctx.font = '13pt';
-                                        ctx.textAlign = 'right';
-                                        ctx.fillStyle = '#0A0A0A';
-                                        var metrics = ctx.measureText(label);
+                                        backgroundCtx.fillStyle = '#0A0A0A';
+                                        var metrics = backgroundCtx.measureText(label);
                                         var width = metrics.width;
                                         if (width > w && !skipLabel) {
                                             // skip this label...
@@ -943,7 +959,7 @@ else {
                                         }
                                         else {
                                             skipLabel = false;
-                                            ctx.fillText(label, previous, osplits.graph.height);
+                                            backgroundCtx.fillText(label, previous, osplits.graph.height);
                                         }
                                         xAxis.push(previous);
                                     }
@@ -956,7 +972,7 @@ else {
                 osplits.webdb.db.readTransaction(function(tx) {
                     tx.executeSql('SELECT t.cumSec FROM time t WHERE t.circuitId = ? and t.runnerId = ? ORDER BY t.numInCircuit;', [ circuitId, runnerId ], function(tx, result) {
                         var c = document.createElement('canvas');
-                        c.width = osplits.graph.width;
+                        c.width = osplits.graph.width + osplits.graph.yAxisWidth;
                         c.height = osplits.graph.height;
                         var ctx = c.getContext('2d');
                         plotRunner(runnerId, ctx, result.rows);
