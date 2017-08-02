@@ -1,6 +1,6 @@
 ﻿/**
   O'Splits - Orienteering Results Viewer
-  
+
   Copyright (C) 2013 by Jan Vorwerk <jan.vorwerk at angexis dot com>
 
   This program is free software: you can redistribute it and/or modify
@@ -75,39 +75,44 @@ else {
         open : function() {
             var dbname = 'osplits:' + window.location.pathname;
             var dbSize = 5 * 1024 * 1024; // 5MB
-            osplits.webdb.db = openDatabase(dbname, "1.0", "O'Splits Storage", dbSize);
+            osplits.webdb.db = new SQL.Database();// openDatabase(dbname, "1.0", "O'Splits Storage", dbSize);
         },
-        onError : function(tx, e) {
-            console.error("O'Splits: insertione failed: " + e);
+        selectAsObjects: function(query, args) {
+            var stmt = osplits.webdb.db.prepare(query, args);
+            var results = []
+            while (stmt.step())
+                results.push(stmt.getAsObject())
+            return results
         },
+
         createTables : function() {
-            osplits.webdb.db.transaction(function(tx) {
-                tx.executeSql("DROP TABLE IF EXISTS time");
-                tx.executeSql("DROP TABLE IF EXISTS runner");
-                tx.executeSql("DROP TABLE IF EXISTS circuit");
-                tx.executeSql("CREATE TABLE IF NOT EXISTS circuit(id INTEGER PRIMARY KEY ASC, number INTEGER, description TEXT, ctrlCount INTEGER)");
-                tx.executeSql("CREATE TABLE IF NOT EXISTS runner(id INTEGER PRIMARY KEY ASC, circuitId INTEGER, rank INTEGER, name TEXT, club TEXT, category TEXT)");
-                tx.executeSql("CREATE TABLE IF NOT EXISTS time(id INTEGER PRIMARY KEY ASC, circuitId INTEGER, runnerId INTEGER, numInCircuit INTEGER, fromCtrl TEXT, toCtrl TEXT, legSec INTEGER, cumSec INTEGER)");
-            });
+            osplits.webdb.db.run("BEGIN TRANSACTION");
+                osplits.webdb.db.run("DROP TABLE IF EXISTS time");
+                osplits.webdb.db.run("DROP TABLE IF EXISTS runner");
+                osplits.webdb.db.run("DROP TABLE IF EXISTS circuit");
+                osplits.webdb.db.run("CREATE TABLE IF NOT EXISTS circuit(id INTEGER PRIMARY KEY ASC, number INTEGER, description TEXT, ctrlCount INTEGER)");
+                osplits.webdb.db.run("CREATE TABLE IF NOT EXISTS runner(id INTEGER PRIMARY KEY ASC, circuitId INTEGER, rank INTEGER, name TEXT, club TEXT, category TEXT)");
+                osplits.webdb.db.run("CREATE TABLE IF NOT EXISTS time(id INTEGER PRIMARY KEY ASC, circuitId INTEGER, runnerId INTEGER, numInCircuit INTEGER, fromCtrl TEXT, toCtrl TEXT, legSec INTEGER, cumSec INTEGER)");
+            osplits.webdb.db.run("COMMIT");
         },
+
         storeCircuitTxn: function(number, circuit) {
             var noop = function(){};
-            var storeCircuit = function(tx) {
-                tx.executeSql("INSERT INTO circuit(number, description, ctrlCount) VALUES (?,?,?)", [number, circuit.description, circuit.controls.length],
-                        function(txdummy, result){
+            var storeCircuit = function() {
+                osplits.webdb.db.run("INSERT INTO circuit(number, description, ctrlCount) VALUES (?,?,?)", [number, circuit.description, circuit.controls.length])
+                            var insertId = osplits.webdb.db.exec("SELECT last_insert_rowid()")[0].values[0][0];
                             for(var i=0; i<circuit.rankedRunners.length;i++) {
-                                storeRunner(tx, result.insertId, circuit.rankedRunners[i]);
+                                storeRunner(insertId, circuit.rankedRunners[i]);
                             }
                             for(var i=0; i<circuit.unrankedRunners.length;i++) {
                                 var r = circuit.unrankedRunners[i];
                                 if (!r.rank) r.rank = r.status;
-                                storeRunner(tx, result.insertId, r);
+                                storeRunner(insertId, r);
                             }
-                        }, osplits.webdb.onError);
             };
-            var storeRunner = function(tx, circuitId, runner) {
-                tx.executeSql("INSERT INTO runner(circuitId, rank, name, club, category) VALUES (?,?,?,?,?)", [circuitId, runner.rank, runner.firstname + ' ' + runner.lastname, runner.club, runner.category],
-                        function(txdummy, result){
+            var storeRunner = function(circuitId, runner) {
+                osplits.webdb.db.run("INSERT INTO runner(circuitId, rank, name, club, category) VALUES (?,?,?,?,?)", [circuitId, runner.rank, runner.firstname + ' ' + runner.lastname, runner.club, runner.category])
+                            var insertId = osplits.webdb.db.exec("SELECT last_insert_rowid()")[0].values[0][0];
                             var _getLegSec = function(cumTimes, index) {
                                 var legSec = cumTimes[index];
                                 if (legSec != osplits.util.VALUE_MP) {
@@ -126,54 +131,51 @@ else {
                                 var legSec = _getLegSec(runner.cumulatedTimes, i);
                                 var toCtrl = '' + circuit.controls[i];
                                 var numInCircuit = i + 1;
-                                storeTime(tx, circuitId, result.insertId, numInCircuit, fromCtrl, toCtrl, legSec, cumSec);
+                                storeTime(circuitId, insertId, numInCircuit, fromCtrl, toCtrl, legSec, cumSec);
                                 fromCtrl = toCtrl;
                             }
                             var cumSec = runner.cumulatedTimes[circuit.controls.length];
                             var legSec = _getLegSec(runner.cumulatedTimes, circuit.controls.length);
-                            storeTime(tx, circuitId, result.insertId, 'A', fromCtrl, 'A', legSec, cumSec);
-                        }, osplits.webdb.onError);                
+                            storeTime(circuitId, insertId, 'A', fromCtrl, 'A', legSec, cumSec);
             };
-            var storeTime = function(tx, circuitId, runnerId, numInCircuit, fromCtrl, toCtrl, legSec, cumSec) {
-                tx.executeSql("INSERT INTO time(circuitId, runnerId, numInCircuit, fromCtrl, toCtrl, legSec, cumSec) VALUES (?,?,?,?,?,?,?)",
+            var storeTime = function(circuitId, runnerId, numInCircuit, fromCtrl, toCtrl, legSec, cumSec) {
+                osplits.webdb.db.run("INSERT INTO time(circuitId, runnerId, numInCircuit, fromCtrl, toCtrl, legSec, cumSec) VALUES (?,?,?,?,?,?,?)",
                         [circuitId, runnerId, numInCircuit, fromCtrl, toCtrl, legSec, cumSec], noop, osplits.webdb.onError);
             };
-            osplits.webdb.db.transaction(function(tx) {
-                storeCircuit(tx);
-            });
+
+            storeCircuit();
         },
         storeCircuitTxnV1: function(number, circuit) {
             var noop = function(){};
-            var storeCircuit = function(tx) {
-                tx.executeSql("INSERT INTO circuit(number, description, ctrlCount) VALUES (?,?,?)", [number, circuit.description, circuit.controls.length - 1],
-                        function(txdummy, result){
+            var storeCircuit = function() {
+                osplits.webdb.db.run("INSERT INTO circuit(number, description, ctrlCount) VALUES (?,?,?)", [number, circuit.description, circuit.controls.length - 1])
+                            var insertId = osplits.webdb.db.exec("SELECT last_insert_rowid()")[0].values[0][0];
                             for(var i=0; i<circuit.runners.length;i++) {
-                                storeRunner(tx, result.insertId, circuit.runners[i]);
+                                storeRunner(insertId, circuit.runners[i]);
                             }
-                        }, osplits.webdb.onError);
+
+
+
             };
-            var storeRunner = function(tx, circuitId, runner) {
-                tx.executeSql("INSERT INTO runner(circuitId, rank, name, club, category) VALUES (?,?,?,?,?)", [circuitId, runner.rank, runner.name, runner.club, runner.category],
-                        function(txdummy, result){
+            var storeRunner = function(circuitId, runner) {
+                osplits.webdb.db.run("INSERT INTO runner(circuitId, rank, name, club, category) VALUES (?,?,?,?,?)", [circuitId, runner.rank, runner.name, runner.club, runner.category])
+                            var insertId = osplits.webdb.db.exec("SELECT last_insert_rowid()")[0].values[0][0];
                             var fromCtrl = 'D';
                             for(var i=0; i<circuit.controls.length;i++) {
                                 var legSec = osplits.util.str2sec(runner.legTimes[i]);
                                 var cumSec = osplits.util.str2sec(runner.cumTimes[i]);
                                 var toCtrl = circuit.controls[i].id;
                                 var numInCircuit = circuit.controls[i].n;
-                                storeTime(tx, circuitId, result.insertId, numInCircuit, fromCtrl, toCtrl, legSec, cumSec);
+                                storeTime(circuitId, insertId, numInCircuit, fromCtrl, toCtrl, legSec, cumSec);
                                 fromCtrl = toCtrl;
                             }
-                        }, osplits.webdb.onError);                
             };
-            var storeTime = function(tx, circuitId, runnerId, numInCircuit, fromCtrl, toCtrl, legSec, cumSec) {
-                tx.executeSql("INSERT INTO time(circuitId, runnerId, numInCircuit, fromCtrl, toCtrl, legSec, cumSec) VALUES (?,?,?,?,?,?,?)",
+            var storeTime = function(circuitId, runnerId, numInCircuit, fromCtrl, toCtrl, legSec, cumSec) {
+                osplits.webdb.db.run("INSERT INTO time(circuitId, runnerId, numInCircuit, fromCtrl, toCtrl, legSec, cumSec) VALUES (?,?,?,?,?,?,?)",
                         [circuitId, runnerId, numInCircuit, fromCtrl, toCtrl, legSec, cumSec], noop, osplits.webdb.onError);
             };
-            osplits.webdb.db.transaction(function(tx) {
-                storeCircuit(tx);
-            });
-        }       
+                storeCircuit();
+        }
     };
     osplits.webdb.open();
     osplits.webdb.createTables();
@@ -200,7 +202,7 @@ else {
             for(var circuitNum=0; circuitNum < jsonResults.circuits.length; circuitNum++) {
                 osplits.webdb.storeCircuitTxn(circuitNum, jsonResults.circuits[circuitNum]);
             }
-            return circuitNum;            
+            return circuitNum;
         },
         storeJsonV1: function(jsonResults) {
             for(var circuitNum=0; circuitNum < jsonResults.circuits.length; circuitNum++) {
@@ -219,7 +221,7 @@ else {
                         toCircuit.controls.push({n:''+(ctrlIndex+1), id:ctrlId});
                     }
                     toCircuit.controls.push({n:''+toCircuit.controls.length+1, id:'A'});
-                    
+
                     for(var runnerNum=0; runnerNum < fromCircuit.rankedRunners.length; runnerNum++) {
                         var fromRunner = fromCircuit.rankedRunners[runnerNum];
                         var toRunner = {};
@@ -245,7 +247,7 @@ else {
             osplits.parser.PARENT = osplits.parser.BACKUP.parentElement;
             osplits.parser.LANG = osplits.parser.LANGS.fr;
             var fullText = osplits.parser.BACKUP.innerText;
-            var circuits = fullText.split(/\n{3}/); // all circuits are (hopefully) separated by 3 blank lines 
+            var circuits = fullText.split(/\n{3}/); // all circuits are (hopefully) separated by 3 blank lines
             var head = circuits.shift();
             var found = 0;
             var extractLeftAligned = function(tt){
@@ -257,7 +259,7 @@ else {
                 to += tt.length + from;
                 to -= 2; // this is a dirty hack for results by categories (http://nose42.fr/data/resultats/2013/we-clmd/CLMD_CategoriesSI.html)
                 return new osplits.parser.Extractor(from, to);
-            };  
+            };
             var extractRightAligned = function(tt, len){
                 var to = head.indexOf(tt);
                 if (to === -1){
@@ -269,7 +271,7 @@ else {
                     from = 0;
                 }
                 return new osplits.parser.Extractor(from, to);
-            };  
+            };
             osplits.parser.HEADLINE.rank = extractRightAligned(osplits.parser.LANG.rank, 3);
             osplits.parser.HEADLINE.name = extractLeftAligned(osplits.parser.LANG.name);
             osplits.parser.HEADLINE.category = extractLeftAligned(osplits.parser.LANG.category, 4);
@@ -366,7 +368,7 @@ else {
             if (!runner.rank) {
                 return undefined;
             }
-                
+
             lines.unshift(line2);
             lines.unshift(line1);
 
@@ -387,7 +389,7 @@ else {
             if (line) {
                 lines.unshift(line);
             }
-            
+
             runner.cumTimes = totals.trim().split(/\s+/);
             runner.legTimes = legs.trim().split(/\s+/);
 
@@ -411,66 +413,66 @@ else {
             var W = 300;
             var L = ($('body').get()[0].offsetWidth - W)/2;
             $(ctrlRanking).css({ display : 'none', left : L });
-            
+
             var buttonClose = document.createElement('button');
             buttonClose.addEventListener('click',function(e) {
                 document.getElementById('ctrlRanking').style.display = 'none';
             });
-            buttonClose.innerText = chrome.i18n.getMessage('closeButton');
+            buttonClose.innerText = browser.i18n.getMessage('closeButton');
             ctrlRanking.appendChild(buttonClose);
-            
+
             var title = document.createElement('p');
             $(title).attr('id','titleCtrlRanking');
             ctrlRanking.appendChild(title);
-            
+
             var scrollable = document.createElement('div');
-            
+
             var table = document.createElement('table');
-            
+
             var thead = table.createTHead();
-            
+
             var th = document.createElement('th');
-            th.innerText = chrome.i18n.getMessage('labelRank');
+            th.innerText = browser.i18n.getMessage('labelRank');
             th.classList.add('right');
             thead.appendChild(th);
 
             th = document.createElement('th');
-            th.innerText = chrome.i18n.getMessage('labelName');
+            th.innerText = browser.i18n.getMessage('labelName');
             th.classList.add('left');
             thead.appendChild(th);
-            
+
             th = document.createElement('th');
-            th.innerText = chrome.i18n.getMessage('labelCategory');
+            th.innerText = browser.i18n.getMessage('labelCategory');
             th.classList.add('left');
             thead.appendChild(th);
-            
+
             th = document.createElement('th');
-            th.innerText = chrome.i18n.getMessage('labelTime');
+            th.innerText = browser.i18n.getMessage('labelTime');
             th.classList.add('left');
             thead.appendChild(th);
-            
+
             var tbody = document.createElement('tbody');
             $(tbody).attr('id','ctrlRankingTBody');
             table.appendChild(tbody);
-            
+
             scrollable.appendChild(table);
             ctrlRanking.appendChild(scrollable);
-            
+
             document.body.appendChild(ctrlRanking);
-            
+
         },
         buildCtrlRanking : function(fromCtrl, toCtrl) {
             var title = document.getElementById('titleCtrlRanking');
-            title.innerText = chrome.i18n.getMessage('titleCtrlRanking') + '\n' + fromCtrl + ' -> ' + toCtrl;
-            
+            title.innerText = browser.i18n.getMessage('titleCtrlRanking') + '\n' + fromCtrl + ' -> ' + toCtrl;
+
             var tbody = document.getElementById('ctrlRankingTBody');
             $('tbody#ctrlRankingTBody tr').remove();
             var query = 'SELECT r.id, r.name, r.club, r.category, t.legSec FROM time AS t, runner AS r WHERE t.runnerId = r.id AND t.fromCtrl = ? AND t.toCtrl = ? AND t.legSec < ? ORDER BY t.legSec, r.name';
-            osplits.webdb.db.readTransaction(function(tx) {
-                tx.executeSql(query, [fromCtrl, toCtrl, osplits.util.VALUE_MP], function(tx,result) {
+
+                                    var result = osplits.webdb.selectAsObjects(query, [fromCtrl, toCtrl, osplits.util.VALUE_MP])
                 var legPre, rankPre = undefined;
-                    for (var i = 1; i <= result.rows.length; i++) { 
-                        var line = result.rows.item(i-1);
+                    for (var i = 1; i <= result.length; i++) {
+                        var line = result[i-1];
                         var time = line.legSec;
                         var rank = i;
                         if (time == legPre) {
@@ -481,34 +483,32 @@ else {
                         rankPre = rank;
                         osplits.tables.buildRunnerForCtrlRanking(tbody,runner);
                     }
-                });
-            });
         },
         buildRunnerForCtrlRanking : function(tbody, runner) {
             var tr = document.createElement('tr');
-            
+
             var td = document.createElement('td');
             td.innerText = runner.rank;
             tr.appendChild(td);
-            
+
             var td = document.createElement('td');
             td.innerText = runner.name;
             tr.appendChild(td);
-            
+
             var td = document.createElement('td');
             td.innerText = runner.category;
             tr.appendChild(td);
-            
+
             var td = document.createElement('td');
             td.innerText = osplits.util.sec2str(runner.time);
             tr.appendChild(td);
-            
+
             tbody.appendChild(tr);
         },
         displayCtrlRanking : function() {
             var ctrlRanking = document.getElementById('ctrlRanking');
             ctrlRanking.style.display = 'block';
-            
+
         },
         onRunnerClicked : function(event) {
             var tbody = this;
@@ -519,7 +519,7 @@ else {
             var circuitId = table.dataset['circuitId'];
             var runnerId = tbody.dataset['runnerId'];
             var graphObj = osplits.graph.circuits[circuitId];
-            
+
             var show = forceSelected;
             if (forceSelected === undefined) {
                 show = tbody.classList.toggle('selected');
@@ -565,13 +565,13 @@ else {
             if (table.classList.contains('restricted')) {
                 $(table).find('tbody').show('fast', function(){
                     table.classList.remove('restricted');
-                    button.innerText = chrome.i18n.getMessage('buttonFilterOn');
+                    button.innerText = browser.i18n.getMessage('buttonFilterOn');
                 });
             }
             else{
                 $(table).find('tbody').not('.selected').hide(function(){
                     table.classList.add('restricted');
-                    button.innerText = chrome.i18n.getMessage('buttonFilterOff');
+                    button.innerText = browser.i18n.getMessage('buttonFilterOff');
                 });
             }
         },
@@ -579,30 +579,27 @@ else {
             var cicuitId = table.dataset['circuitId'];
             table.dataset['best'] = rowId;
             $(table).find('.highlighted').removeClass('highlighted');
-            osplits.webdb.db.readTransaction(function(tx){
-                tx.executeSql(query, [cicuitId, cicuitId], function(tx, result){
-                    var count = result.rows.length;
+                var result = osplits.webdb.selectAsObjects(query, [cicuitId, cicuitId])
+                    var count = result.length;
                     for(var i = 0; i < count; i++) {
-                        var best = result.rows.item(i);
+                        var best = result[i];
                         var jq = 'tbody[data-runner-id="' + best.id + '"] tr[data-time="' + rowId + '"] td[data-ctrl-num="' + best.numInCircuit + '"]';
                         $(table).find(jq).addClass('highlighted');
                     }
-                });
-            });
         },
-        QUERY_BEST_LEG: 'SELECT r.id, t1.numInCircuit FROM time AS t1, runner AS r WHERE t1.circuitId = ? AND t1.runnerId = r.id AND t1.legSec = (SELECT min( t2.legSec ) FROM time t2 WHERE t2.numInCircuit = t1.numInCircuit AND t2.circuitId = ? GROUP BY t2.numInCircuit) order by t1.numInCircuit;', 
-        QUERY_BEST_CUM: 'SELECT r.id, t1.numInCircuit FROM time AS t1, runner AS r WHERE t1.circuitId = ? AND t1.runnerId = r.id AND t1.cumSec = (SELECT min( t2.cumSec ) FROM time t2 WHERE t2.numInCircuit = t1.numInCircuit AND t2.circuitId = ? GROUP BY t2.numInCircuit) order by t1.numInCircuit;', 
+        QUERY_BEST_LEG: 'SELECT r.id, t1.numInCircuit FROM time AS t1, runner AS r WHERE t1.circuitId = ? AND t1.runnerId = r.id AND t1.legSec = (SELECT min( t2.legSec ) FROM time t2 WHERE t2.numInCircuit = t1.numInCircuit AND t2.circuitId = ? GROUP BY t2.numInCircuit) order by t1.numInCircuit;',
+        QUERY_BEST_CUM: 'SELECT r.id, t1.numInCircuit FROM time AS t1, runner AS r WHERE t1.circuitId = ? AND t1.runnerId = r.id AND t1.cumSec = (SELECT min( t2.cumSec ) FROM time t2 WHERE t2.numInCircuit = t1.numInCircuit AND t2.circuitId = ? GROUP BY t2.numInCircuit) order by t1.numInCircuit;',
         toggleHighlightBest: function(event) {
             var button = this;
             var table = $(button).parent().parent().find('table').get(0);
             var curr = table.dataset['best'];
             switch (curr) {
             case 'leg':
-                button.innerText = chrome.i18n.getMessage('buttonBestLeg');
+                button.innerText = browser.i18n.getMessage('buttonBestLeg');
                 osplits.tables._highlightBest(table, 'cum', osplits.tables.QUERY_BEST_CUM);
                 break;
             case 'cum':
-                button.innerText = chrome.i18n.getMessage('buttonBestCum');
+                button.innerText = browser.i18n.getMessage('buttonBestCum');
                 osplits.tables._highlightBest(table, 'leg', osplits.tables.QUERY_BEST_LEG);
                 break;
             }
@@ -627,33 +624,33 @@ else {
         onCompleted : function() {
             osplits.parser.PARENT.appendChild(osplits.parser.OURDIV);
         },
-        generateOneCircuit : function(tx, isLast, circuit) {
+        generateOneCircuit : function(isLast, circuit) {
             var container = document.createElement('div');
             container.classList.add('container');
-            
+
             var caption = document.createElement('h1');
             container.appendChild(caption);
             caption.innerText = circuit.description;
 
             var button = document.createElement('button');
-            button.innerText = chrome.i18n.getMessage('buttonFilterOn');
+            button.innerText = browser.i18n.getMessage('buttonFilterOn');
             button.addEventListener('click', osplits.tables.toggleRestricted);
             caption.appendChild(button);
-            
+
             button = document.createElement('button');
-            button.innerText = chrome.i18n.getMessage('buttonBestCum');
+            button.innerText = browser.i18n.getMessage('buttonBestCum');
             button.addEventListener('click', osplits.tables.toggleHighlightBest);
             caption.appendChild(button);
 
             button = document.createElement('button');
-            button.innerText = chrome.i18n.getMessage('buttonShowGraph');
+            button.innerText = browser.i18n.getMessage('buttonShowGraph');
             button.addEventListener('click', osplits.graph.toggleGraph);
             caption.appendChild(button);
 
             var scrollable = document.createElement('div');
             container.appendChild(scrollable);
             scrollable.classList.add('scrollable');
-            
+
             var table = document.createElement('table');
             scrollable.appendChild(table);
             table.dataset['circuitId'] = circuit.id;
@@ -661,27 +658,27 @@ else {
             var thead = table.createTHead();
 
             var th = document.createElement('th');
-            th.innerText = chrome.i18n.getMessage('labelRank');
+            th.innerText = browser.i18n.getMessage('labelRank');
             th.classList.add('right');
             thead.appendChild(th);
 
             th = document.createElement('th');
-            th.innerText = chrome.i18n.getMessage('labelName');
+            th.innerText = browser.i18n.getMessage('labelName');
             th.classList.add('left');
             thead.appendChild(th);
-            
-            if (osplits.parser.HEADLINE.category) { 
+
+            if (osplits.parser.HEADLINE.category) {
                 th = document.createElement('th');
-                th.innerText = chrome.i18n.getMessage('labelCategory');
+                th.innerText = browser.i18n.getMessage('labelCategory');
                 th.classList.add('left');
                 thead.appendChild(th);
             }
-            tx.executeSql('select * from time where circuitId = ? group by numInCircuit;', [circuit.id], function(tx, ctrlResult) {
-                if (circuit.ctrlCount + 1 !== ctrlResult.rows.length) {
-                    console.error("Control count mismatch!");
+                var ctrlResult = osplits.webdb.selectAsObjects('select * from time where circuitId = ? group by numInCircuit;', [circuit.id])
+                if (circuit.ctrlCount + 1 !== ctrlResult.length) {
+                    console.error("Control count mismatch! Got=" + circuit.ctrlCount + 1 + ", Exp=" + ctrlResult.length);
                 }
-                for (var j = 0; j < ctrlResult.rows.length; j++) {
-                    var ctrl = ctrlResult.rows.item(j);
+                for (var j = 0; j < ctrlResult.length; j++) {
+                    var ctrl = ctrlResult[j];
                     th = document.createElement('td');
                     th.innerHTML = ctrl.numInCircuit + '&nbsp;<span class="ctrlid">' + ctrl.toCtrl + '</span>';
                     th.classList.add('right');
@@ -692,36 +689,34 @@ else {
                     thead.appendChild(th);
                 }
 
-                tx.executeSql('select r.id, r.rank, r.name, r.club, r.category, t.numInCircuit, t.legSec, t.cumSec from time as t, runner as r where t.circuitId = ? and t.runnerId = r.id order by r.rank, r.id, t.numInCircuit;', [circuit.id], function(tx, timeResults) {
-                    var timeResultsCount = timeResults.rows.length;
+                var timeResults = osplits.webdb.selectAsObjects('select r.id, r.rank, r.name, r.club, r.category, t.numInCircuit, t.legSec, t.cumSec from time as t, runner as r where t.circuitId = ? and t.runnerId = r.id order by r.rank, r.id, t.numInCircuit;', [circuit.id])
+                    var timeResultsCount = timeResults.length;
                     var ctrlCount = circuit.ctrlCount + 1;
                     for (var k=0; k < timeResultsCount; k += ctrlCount) {
-                        var line = timeResults.rows.item(k);
+                        var line = timeResults[k];
                         var runner = {
                             id: line.id,
-                            rank: line.rank,      
-                            name: line.name,      
-                            club: line.club,      
+                            rank: line.rank,
+                            name: line.name,
+                            club: line.club,
                             category: line.category,
                             ctrlNum: [],
                             legSec: [],
                             cumSec: []
                         };
                         for(var kk=0; kk < ctrlCount; kk++) {
-                            runner.ctrlNum[kk] = timeResults.rows.item(k+kk).numInCircuit;
-                            runner.legSec[kk] = timeResults.rows.item(k+kk).legSec;
-                            runner.cumSec[kk] = timeResults.rows.item(k+kk).cumSec;
+                            runner.ctrlNum[kk] = timeResults[k+kk].numInCircuit;
+                            runner.legSec[kk] = timeResults[k+kk].legSec;
+                            runner.cumSec[kk] = timeResults[k+kk].cumSec;
                         }
                         var isRunnerLast = isLast && k === timeResultsCount - ctrlCount;
-                        osplits.tables.generateOneRunner(tx, isRunnerLast, table, runner);
+                        osplits.tables.generateOneRunner(isRunnerLast, table, runner);
                     }
-                });
-            });
             osplits.parser.OURDIV.appendChild(container);
             osplits.tables._highlightBest(table, 'leg', osplits.tables.QUERY_BEST_LEG);
             osplits.graph.circuits[circuit.id] = osplits.graph.createGraphObject(table);
         },
-        generateOneRunner: function(tx, isRunnerLast, table, runner) {
+        generateOneRunner: function(isRunnerLast, table, runner) {
             var tbody, th, tr, td = undefined;
             tbody = table.createTBody();
             tbody.dataset['runnerId'] = runner.id;
@@ -733,7 +728,7 @@ else {
             th = document.createElement('th');
             var rank = runner.rank;
             if (rank >= osplits.util.VALUE_MP) {
-                th.innerText = chrome.i18n.getMessage('mp');
+                th.innerText = browser.i18n.getMessage('mp');
             } else {
                 th.innerText = runner.rank;
             }
@@ -745,7 +740,7 @@ else {
             th.classList.add('left');
             tr.appendChild(th);
 
-            if (osplits.parser.HEADLINE.category) { 
+            if (osplits.parser.HEADLINE.category) {
                 th = document.createElement('th');
                 th.innerText = runner.category;
                 th.classList.add('left');
@@ -784,7 +779,7 @@ else {
             th.appendChild(span);
             tr.appendChild(th);
             // place holder for category
-            if (osplits.parser.HEADLINE.category) { 
+            if (osplits.parser.HEADLINE.category) {
                 th = document.createElement('th');
                 tr.appendChild(th);
             }
@@ -807,16 +802,13 @@ else {
         generateTables : function() {
             osplits.parser.OURDIV = document.createElement('div');
             osplits.parser.OURDIV.id = 'osplits';
-            
-            osplits.webdb.db.readTransaction(function(tx){
-                tx.executeSql('SELECT * from circuit ORDER BY number;', [], function(tx, result){
-                    for(var i = 0; i < result.rows.length; i++) {
-                        var circuit = result.rows.item(i);
-                        var isLast = i === result.rows.length - 1;
-                        osplits.tables.generateOneCircuit(tx, isLast, circuit);
+
+                var results = osplits.webdb.selectAsObjects('SELECT * from circuit ORDER BY number;', null)
+                for(var i = 0; i < results.length; i++) {
+                        var circuit = results[i];
+                        var isLast = i === results.length - 1;
+                        osplits.tables.generateOneCircuit(isLast, circuit);
                     }
-                });
-            });
         }
     };
     osplits.graph = {
@@ -870,7 +862,7 @@ else {
             var seconds2y = function(s) {
                 return parseInt(s * osplits.graph.height / (worstTotal - bestTotal));
             };
-            
+
             var plotRunner = function(runnerId, ctx, timeRows) {
                 ctx.strokeStyle = osplits.graph.getColor(runnerId);
                 ctx.lineWidth = 2;
@@ -878,7 +870,7 @@ else {
                 ctx.beginPath();
                 ctx.moveTo(x, y);
                 for (var j = 0; j < timeRows.length; j++) {
-                    var cumSec = timeRows.item(j).cumSec;
+                    var cumSec = timeRows[j].cumSec;
                     if (cumSec >= osplits.util.VALUE_MP) {
                         dashed=true;
                         if ( x > 0 ) {
@@ -889,7 +881,7 @@ else {
                         }
                         while (j < timeRows.length - 1 && cumSec >= osplits.util.VALUE_MP) {
                             j++;
-                            cumSec = timeRows.item(j).cumSec;
+                            cumSec = timeRows[j].cumSec;
                         }
                     }
                     else if (dashed){
@@ -908,7 +900,7 @@ else {
                     }
                 }
                 ctx.stroke();
-                var total = timeRows.item(timeRows.length-1).cumSec;
+                var total = timeRows[timeRows.length-1].cumSec;
                 if ( total <  osplits.util.VALUE_MP ) {
                     var cumLostTotalSec = total-bestTotal;
                     var cumLostMn = (cumLostTotalSec/60) << 0;
@@ -921,33 +913,30 @@ else {
                     y = seconds2y(cumLostTotalSec);
                     ctx.fillText(lostText, x, y);
                 }
-                
+
             };
-            osplits.webdb.db.readTransaction(function(tx) {
-                tx.executeSql("SELECT runnerId, cumSec FROM time WHERE circuitId = ? AND toCtrl = 'A';",
-                    [ circuitId ],
-                    function(tx, result){
-                        for (var i = 0; i < result.rows.length; i++) {
-                            var t = result.rows.item(i);
+                var result = osplits.webdb.selectAsObjects("SELECT runnerId, cumSec FROM time WHERE circuitId = ? AND toCtrl = 'A';", [ circuitId ])
+
+
+                        for (var i = 0; i < result.length; i++) {
+                            var t = result[i];
                             totalTimes[t.runnerId] = t.cumSec;
                         }
-                        tx.executeSql('SELECT min( t.legSec ) AS best, t.numInCircuit AS num FROM time t WHERE t.circuitId = ? GROUP BY t.numInCircuit ORDER BY t.numInCircuit;',
-                                [ circuitId ],
-                                function(tx, result) {
+                var result = osplits.webdb.selectAsObjects('SELECT min( t.legSec ) AS best, t.numInCircuit AS num FROM time t WHERE t.circuitId = ? GROUP BY t.numInCircuit ORDER BY t.numInCircuit;',[ circuitId ])
                                     var previous = 0;
-                                    for (var i = 0; i < result.rows.length; i++) {
-                                        var t = result.rows.item(i);
+                                    for (var i = 0; i < result.length; i++) {
+                                        var t = result[i];
                                         bestTotal += t.best;
                                         bestCumSec.push(bestTotal);
                                     }
                                     var skipLabel = false;
-                                    for (var i = 0; i < result.rows.length; i++) {
-                                        var t = result.rows.item(i);
+                                    for (var i = 0; i < result.length; i++) {
+                                        var t = result[i];
                                         var w = seconds2x(t.best);
                                         backgroundCtx.fillStyle = i % 2 ? '#F1F1F1' : '#E5E5E5';
                                         backgroundCtx.fillRect(previous, 0, w, osplits.graph.height);
                                         previous += w;
-                                        
+
                                         // label
                                         var label = '' + t.num;
                                         backgroundCtx.fillStyle = '#0A0A0A';
@@ -963,22 +952,15 @@ else {
                                         }
                                         xAxis.push(previous);
                                     }
-                            });
-                        
-                });
-            });
 
             var buildRunnerCanvas = function(runnerId, callback) {
-                osplits.webdb.db.readTransaction(function(tx) {
-                    tx.executeSql('SELECT t.cumSec FROM time t WHERE t.circuitId = ? and t.runnerId = ? ORDER BY t.numInCircuit;', [ circuitId, runnerId ], function(tx, result) {
+                        var result = osplits.webdb.selectAsObjects('SELECT t.cumSec FROM time t WHERE t.circuitId = ? and t.runnerId = ? ORDER BY t.numInCircuit;', [ circuitId, runnerId ])
                         var c = document.createElement('canvas');
                         c.width = osplits.graph.width + osplits.graph.yAxisWidth;
                         c.height = osplits.graph.height;
                         var ctx = c.getContext('2d');
-                        plotRunner(runnerId, ctx, result.rows);
+                        plotRunner(runnerId, ctx, result);
                         callback(c);
-                    });
-                });
             };
             var deletePlot = function(runnerId) {
                 if (runnerPlots.hasOwnProperty(runnerId)) {
@@ -1049,11 +1031,11 @@ else {
             var table = $(button).parent().parent().find('table').get(0);
             var circuitId = parseInt(table.dataset.circuitId);
             var container = button.parentElement.parentElement;
-            
+
             if (container.classList.toggle('graphMode')) {
                 var graphObj = osplits.graph.circuits[circuitId];
                 graphObj.show();
-                button.innerText = chrome.i18n.getMessage('buttonShowTable');
+                button.innerText = browser.i18n.getMessage('buttonShowTable');
                 $(table).find('td').not('.last').hide();
                 var totalElem = $(table).find('.total').filter(":visible").get(0);
                 var graphLeft = totalElem.offsetLeft + totalElem.offsetWidth + 18; // +scrollbar
@@ -1064,7 +1046,7 @@ else {
             }
             else {
                 $(table).find('td').show();
-                button.innerText = chrome.i18n.getMessage('buttonShowGraph');
+                button.innerText = browser.i18n.getMessage('buttonShowGraph');
                 osplits.graph.circuits[circuitId].hide();
             }
         }
@@ -1083,10 +1065,10 @@ else {
             osplits.parser.LANG = osplits.parser.LANGS.fr;
             var found = osplits.parser.storeJson(msg.data);
             console.log("O'Splits: Received JSON & found " + found + " circuits");
-            chrome.extension.sendMessage({cmd:'parseok', count:found });
+            browser.runtime.sendMessage({cmd:'parseok', count:found });
         }
     });
-    chrome.runtime.onMessage.addListener(function(msg) {
+    browser.runtime.onMessage.addListener(function(msg) {
         jQuery.fn.reverse = jQuery.fn.reverse || [].reverse;
         console.log("O'Splits: contentscript receiving chrome msg:" + msg.cmd);
         switch (msg.cmd) {
@@ -1094,10 +1076,10 @@ else {
             osplits.parser.BACKUP = document.getElementsByTagName('pre')[0];
             osplits.parser.PARENT = osplits.parser.BACKUP.parentElement;
             osplits.parser.LANG = osplits.parser.LANGS.fr;
-            
+
             var found = osplits.parser.parseDocument();
             console.log("O'Splits: Parsing document found " + found + " circuits");
-            chrome.extension.sendMessage({cmd:'parseok', count:found });
+            browser.runtime.sendMessage({cmd:'parseok', count:found });
             break;
         case 'readJson':
             osplits.parser.BACKUP = document.getElementById('gecoResults');
@@ -1111,8 +1093,8 @@ else {
                 found = osplits.parser.storeJson(window.gecoOrienteeringResults);
             }
             console.log("O'Splits: Read JSON & found " + found + " circuits");
-            chrome.extension.sendMessage({cmd:'parseok', count:found });
-            break;            
+            browser.runtime.sendMessage({cmd:'parseok', count:found });
+            break;
         case 'loadJsonData':
             // This is the 2nd Geco scheme => send to HTML page
             window.postMessage({cmd:'loadJsonData'}, '*');
