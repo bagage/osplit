@@ -17,8 +17,8 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-browser.pageAction.onClicked.addListener(function(tab) {
-    browser.tabs.sendMessage(tab.id, {
+chrome.pageAction.onClicked.addListener(function(tab) {
+    chrome.tabs.sendMessage(tab.id, {
         cmd : 'showtables'
     });
 });
@@ -30,10 +30,10 @@ function onMessage(msg, sender, sendResponse) {
     switch (msg.cmd) {
     case 'oedetected':
         console.log("O'Splits: OE document detected, injecting script");
-        browser.tabs.executeScript(tabid, {file:'/js/jquery-2.0.0.min.js'}, function() {
-        browser.tabs.executeScript(tabid, {file:'/js/sql.js'}, function() {
-            browser.tabs.executeScript(tabid, {file:'/js/contentscript.js'}, function() {
-                browser.tabs.sendMessage(tabid, {cmd:'parse'});
+        chrome.tabs.executeScript(tabid, {file:'/js/jquery-2.0.0.min.js'}, function() {
+        chrome.tabs.executeScript(tabid, {file:'/js/sql.js'}, function() {
+            chrome.tabs.executeScript(tabid, {file:'/js/contentscript.js'}, function() {
+                chrome.tabs.sendMessage(tabid, {cmd:'parse'});
             });
         });
         });
@@ -41,17 +41,17 @@ function onMessage(msg, sender, sendResponse) {
         break;
     case 'gecodetected':
         console.log("O'Splits: Geco detected, injecting script");
-        browser.tabs.executeScript(tabid, {file:'/js/jquery-2.0.0.min.js'}, function() {
-            browser.tabs.executeScript(tabid, {file:'/js/sql.js'}, function() {
-            browser.tabs.executeScript(tabid, {file:'/js/contentscript.js'}, function() {
+        chrome.tabs.executeScript(tabid, {file:'/js/jquery-2.0.0.min.js'}, function() {
+            chrome.tabs.executeScript(tabid, {file:'/js/sql.js'}, function() {
+            chrome.tabs.executeScript(tabid, {file:'/js/contentscript.js'}, function() {
                 if (msg.old) {
-                    browser.tabs.sendMessage(tabid, {cmd:'readJson'});
+                    chrome.tabs.sendMessage(tabid, {cmd:'readJson'});
                 }
                 else if (msg.val === 'v3') {
-                    browser.tabs.sendMessage(tabid, {cmd:'loadJsonDataV3'});
+                    chrome.tabs.sendMessage(tabid, {cmd:'loadJsonDataV3'});
                 }
                 else {
-                    browser.tabs.sendMessage(tabid, {cmd:'loadJsonData'});
+                    chrome.tabs.sendMessage(tabid, {cmd:'loadJsonData'});
                 }
             });
             });
@@ -60,10 +60,10 @@ function onMessage(msg, sender, sendResponse) {
     case 'parseok':
         console.log("O'Splits: document detected with " + msg.count + " circuits");
         if (msg.count) {
-            browser.tabs.insertCSS(tabid, {
+            chrome.tabs.insertCSS(tabid, {
                 file : '/stylesheets/splitochrome.css'
             });
-            browser.pageAction.show(tabid);
+            chrome.pageAction.show(tabid);
         }
         break;
     }
@@ -71,11 +71,11 @@ function onMessage(msg, sender, sendResponse) {
 
 };
 // Listen for the content script to send a message to the background page.
-browser.runtime.onMessage.addListener(onMessage);
+chrome.runtime.onMessage.addListener(onMessage);
 
 
-// var gettingActiveTab = browser.tabs.query({active: true, currentWindow: true});
+// var gettingActiveTab = chrome.tabs.query({active: true, currentWindow: true});
 // gettingActiveTab.then((tabs) => {
-//   browser.pageAction.show(tabs[0].id);
-//   browser.pageAction.disable(tabs[0].id);
+//   chrome.pageAction.show(tabs[0].id);
+//   chrome.pageAction.disable(tabs[0].id);
 // });

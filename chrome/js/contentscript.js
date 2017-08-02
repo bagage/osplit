@@ -418,7 +418,7 @@ else {
             buttonClose.addEventListener('click',function(e) {
                 document.getElementById('ctrlRanking').style.display = 'none';
             });
-            buttonClose.innerText = browser.i18n.getMessage('closeButton');
+            buttonClose.innerText = chrome.i18n.getMessage('closeButton');
             ctrlRanking.appendChild(buttonClose);
 
             var title = document.createElement('p');
@@ -432,22 +432,22 @@ else {
             var thead = table.createTHead();
 
             var th = document.createElement('th');
-            th.innerText = browser.i18n.getMessage('labelRank');
+            th.innerText = chrome.i18n.getMessage('labelRank');
             th.classList.add('right');
             thead.appendChild(th);
 
             th = document.createElement('th');
-            th.innerText = browser.i18n.getMessage('labelName');
+            th.innerText = chrome.i18n.getMessage('labelName');
             th.classList.add('left');
             thead.appendChild(th);
 
             th = document.createElement('th');
-            th.innerText = browser.i18n.getMessage('labelCategory');
+            th.innerText = chrome.i18n.getMessage('labelCategory');
             th.classList.add('left');
             thead.appendChild(th);
 
             th = document.createElement('th');
-            th.innerText = browser.i18n.getMessage('labelTime');
+            th.innerText = chrome.i18n.getMessage('labelTime');
             th.classList.add('left');
             thead.appendChild(th);
 
@@ -463,7 +463,7 @@ else {
         },
         buildCtrlRanking : function(fromCtrl, toCtrl) {
             var title = document.getElementById('titleCtrlRanking');
-            title.innerText = browser.i18n.getMessage('titleCtrlRanking') + '\n' + fromCtrl + ' -> ' + toCtrl;
+            title.innerText = chrome.i18n.getMessage('titleCtrlRanking') + '\n' + fromCtrl + ' -> ' + toCtrl;
 
             var tbody = document.getElementById('ctrlRankingTBody');
             $('tbody#ctrlRankingTBody tr').remove();
@@ -565,13 +565,13 @@ else {
             if (table.classList.contains('restricted')) {
                 $(table).find('tbody').show('fast', function(){
                     table.classList.remove('restricted');
-                    button.innerText = browser.i18n.getMessage('buttonFilterOn');
+                    button.innerText = chrome.i18n.getMessage('buttonFilterOn');
                 });
             }
             else{
                 $(table).find('tbody').not('.selected').hide(function(){
                     table.classList.add('restricted');
-                    button.innerText = browser.i18n.getMessage('buttonFilterOff');
+                    button.innerText = chrome.i18n.getMessage('buttonFilterOff');
                 });
             }
         },
@@ -595,11 +595,11 @@ else {
             var curr = table.dataset['best'];
             switch (curr) {
             case 'leg':
-                button.innerText = browser.i18n.getMessage('buttonBestLeg');
+                button.innerText = chrome.i18n.getMessage('buttonBestLeg');
                 osplits.tables._highlightBest(table, 'cum', osplits.tables.QUERY_BEST_CUM);
                 break;
             case 'cum':
-                button.innerText = browser.i18n.getMessage('buttonBestCum');
+                button.innerText = chrome.i18n.getMessage('buttonBestCum');
                 osplits.tables._highlightBest(table, 'leg', osplits.tables.QUERY_BEST_LEG);
                 break;
             }
@@ -633,17 +633,17 @@ else {
             caption.innerText = circuit.description;
 
             var button = document.createElement('button');
-            button.innerText = browser.i18n.getMessage('buttonFilterOn');
+            button.innerText = chrome.i18n.getMessage('buttonFilterOn');
             button.addEventListener('click', osplits.tables.toggleRestricted);
             caption.appendChild(button);
 
             button = document.createElement('button');
-            button.innerText = browser.i18n.getMessage('buttonBestCum');
+            button.innerText = chrome.i18n.getMessage('buttonBestCum');
             button.addEventListener('click', osplits.tables.toggleHighlightBest);
             caption.appendChild(button);
 
             button = document.createElement('button');
-            button.innerText = browser.i18n.getMessage('buttonShowGraph');
+            button.innerText = chrome.i18n.getMessage('buttonShowGraph');
             button.addEventListener('click', osplits.graph.toggleGraph);
             caption.appendChild(button);
 
@@ -658,18 +658,18 @@ else {
             var thead = table.createTHead();
 
             var th = document.createElement('th');
-            th.innerText = browser.i18n.getMessage('labelRank');
+            th.innerText = chrome.i18n.getMessage('labelRank');
             th.classList.add('right');
             thead.appendChild(th);
 
             th = document.createElement('th');
-            th.innerText = browser.i18n.getMessage('labelName');
+            th.innerText = chrome.i18n.getMessage('labelName');
             th.classList.add('left');
             thead.appendChild(th);
 
             if (osplits.parser.HEADLINE.category) {
                 th = document.createElement('th');
-                th.innerText = browser.i18n.getMessage('labelCategory');
+                th.innerText = chrome.i18n.getMessage('labelCategory');
                 th.classList.add('left');
                 thead.appendChild(th);
             }
@@ -728,7 +728,7 @@ else {
             th = document.createElement('th');
             var rank = runner.rank;
             if (rank >= osplits.util.VALUE_MP) {
-                th.innerText = browser.i18n.getMessage('mp');
+                th.innerText = chrome.i18n.getMessage('mp');
             } else {
                 th.innerText = runner.rank;
             }
@@ -1035,7 +1035,7 @@ else {
             if (container.classList.toggle('graphMode')) {
                 var graphObj = osplits.graph.circuits[circuitId];
                 graphObj.show();
-                button.innerText = browser.i18n.getMessage('buttonShowTable');
+                button.innerText = chrome.i18n.getMessage('buttonShowTable');
                 $(table).find('td').not('.last').hide();
                 var totalElem = $(table).find('.total').filter(":visible").get(0);
                 var graphLeft = totalElem.offsetLeft + totalElem.offsetWidth + 18; // +scrollbar
@@ -1046,7 +1046,7 @@ else {
             }
             else {
                 $(table).find('td').show();
-                button.innerText = browser.i18n.getMessage('buttonShowGraph');
+                button.innerText = chrome.i18n.getMessage('buttonShowGraph');
                 osplits.graph.circuits[circuitId].hide();
             }
         }
@@ -1065,10 +1065,10 @@ else {
             osplits.parser.LANG = osplits.parser.LANGS.fr;
             var found = osplits.parser.storeJson(msg.data);
             console.log("O'Splits: Received JSON & found " + found + " circuits");
-            browser.runtime.sendMessage({cmd:'parseok', count:found });
+            chrome.runtime.sendMessage({cmd:'parseok', count:found });
         }
     });
-    browser.runtime.onMessage.addListener(function(msg) {
+    chrome.runtime.onMessage.addListener(function(msg) {
         jQuery.fn.reverse = jQuery.fn.reverse || [].reverse;
         console.log("O'Splits: contentscript receiving chrome msg:" + msg.cmd);
         switch (msg.cmd) {
@@ -1079,7 +1079,7 @@ else {
 
             var found = osplits.parser.parseDocument();
             console.log("O'Splits: Parsing document found " + found + " circuits");
-            browser.runtime.sendMessage({cmd:'parseok', count:found });
+            chrome.runtime.sendMessage({cmd:'parseok', count:found });
             break;
         case 'readJson':
             osplits.parser.BACKUP = document.getElementById('gecoResults');
@@ -1093,7 +1093,7 @@ else {
                 found = osplits.parser.storeJson(window.gecoOrienteeringResults);
             }
             console.log("O'Splits: Read JSON & found " + found + " circuits");
-            browser.runtime.sendMessage({cmd:'parseok', count:found });
+            chrome.runtime.sendMessage({cmd:'parseok', count:found });
             break;
         case 'loadJsonData':
             // This is the 2nd Geco scheme => send to HTML page
